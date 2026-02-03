@@ -84,6 +84,7 @@ class SessionStatus(str, Enum):
             # From PENDING
             SessionStatus.PENDING: {
                 SessionStatus.QUEUED,     # Scheduled for execution
+                SessionStatus.RUNNING,    # Immediate execution (start_execution)
                 SessionStatus.CANCELLED,  # Cancelled before queueing
                 SessionStatus.FAILED,     # Immediate failure (e.g., validation)
             },
@@ -128,7 +129,7 @@ class SessionStatus(str, Enum):
             },
             
             # Terminal states - no transitions allowed
-            **{state: set() for state in cls.get_terminal_states()},
+            **{state: set() for state in SessionStatus.get_terminal_states()},
         }
         
         return target_status in transition_map.get(self, set())

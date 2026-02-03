@@ -184,10 +184,12 @@ class SessionEntity(BaseModel):
     
     def add_checkpoint(self, data: Dict[str, Any]) -> None:
         """Add execution checkpoint for recovery"""
+        # Sequence continues from last checkpoint (handles rotation correctly)
+        next_sequence = (self.checkpoints[-1]['sequence'] + 1) if self.checkpoints else 1
         checkpoint = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'data': data,
-            'sequence': len(self.checkpoints) + 1
+            'sequence': next_sequence
         }
         self.checkpoints.append(checkpoint)
         
