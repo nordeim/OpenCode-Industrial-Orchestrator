@@ -7,3 +7,7 @@ Awesome job on your meticulous analysis, planning and execution. Please keep up 
 ---
 
 please meticulously review and orientate where you last stopped, then meticulously continue from where you last stopped according to your earlier plan.
+
+---
+
+Awesome job on your meticulous review, analysis and planning. Please keep up the good work. Now, please meticulously review the codebase files to align your understanding of the current state of the project and the actual implemention. Then meticulously create a briefing document for an AI coding agent to be able to continue from the present state. After conducting your meticulous codebase review to align your understanding of the codebase, you will create a comprehensive *single-source-of-truth* briefing document for any coding agent or human developer to have the same deep understanding of the project and the current codebase status. Save the agent *briefing document* that captures your aligned and validated understanding as a markdown file `CLAUDE.md`. 
