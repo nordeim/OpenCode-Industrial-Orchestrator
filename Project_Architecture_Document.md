@@ -14,6 +14,15 @@ The **OpenCode Industrial Orchestrator** is a production-grade system designed t
 *   **Distributed Coordination:** Fair locking and deadlock prevention for parallel execution.
 *   **Glass Box Monitoring:** Comprehensive metrics for every transition and operation.
 
+### Current Implementation Status
+
+| Phase | Description | Status |
+|:------|:------------|:------:|
+| 2.1 | Foundation & Core Orchestrator | ✅ Complete |
+| 2.2 | Multi-Agent Intelligence | ✅ Complete |
+| 2.3 | Dashboard & Visualization | 🔄 In Progress |
+| 2.4 | Production Hardening | 🔲 Planned |
+
 ---
 
 ## 2. System Architecture
@@ -27,16 +36,20 @@ graph TD
         OpenCode[OpenCode API]
         DB[(PostgreSQL)]
         Cache[(Redis)]
+        WS[WebSocket Clients]
     end
 
     subgraph "Industrial Orchestrator"
         subgraph "Presentation Layer"
             API[FastAPI]
             CLI[CLI Tool]
+            WSHandler[WebSocket Handler]
         end
 
         subgraph "Application Layer"
             SessionSvc[Session Service]
+            AgentSvc[Agent Management Service]
+            ContextSvc[Context Service]
             TaskSvc[Task Decomposition Service]
         end
 
@@ -44,6 +57,8 @@ graph TD
             Session[Session Entity]
             Agent[Agent Entity]
             Task[Task Entity]
+            Context[Context Entity]
+            Registry[Agent Registry]
             Status[Value Objects]
         end
 
@@ -55,8 +70,19 @@ graph TD
     end
 
     User --> API
+    WS --> WSHandler
     API --> SessionSvc
+    API --> AgentSvc
+    API --> ContextSvc
+    API --> TaskSvc
+    WSHandler --> SessionSvc
+    
     SessionSvc --> Session
+    AgentSvc --> Agent
+    AgentSvc --> Registry
+    ContextSvc --> Context
+    TaskSvc --> Task
+    
     SessionSvc --> Repo
     SessionSvc --> Lock
     SessionSvc --> Adapter
@@ -155,6 +181,8 @@ orchestrator/src/industrial_orchestrator/
 ├── domain/                               # 🧠 PURE BUSINESS LOGIC (No external deps)
 │   ├── entities/
 │   │   ├── agent.py                      # Agent specialization & load balancing
+│   │   ├── context.py                    # Context sharing & conflict detection
+│   │   ├── registry.py                   # Agent registry & capability indexing
 │   │   ├── session.py                    # Core session state machine
 │   │   ├── task.py                       # Task decomposition & dependencies
 │   │   └── base.py                       # Base entity class
@@ -165,6 +193,7 @@ orchestrator/src/industrial_orchestrator/
 │   │   └── session_events.py             # Session lifecycle events
 │   └── exceptions/                       # Domain-specific errors
 │       ├── agent_exceptions.py
+│       ├── context_exceptions.py
 │       ├── locking_exceptions.py
 │       ├── repository_exceptions.py
 │       ├── session_exceptions.py
@@ -173,9 +202,17 @@ orchestrator/src/industrial_orchestrator/
 ├── application/                          # ⚙️ ORCHESTRATION LOGIC
 │   ├── services/
 │   │   ├── session_service.py            # Session lifecycle management
+│   │   ├── agent_management_service.py   # Agent registration & routing
+│   │   ├── context_service.py            # Context creation & sharing
 │   │   └── task_decomposition_service.py # Intelligent task breakdown
 │   ├── ports/                            # Interfaces (Abstract Base Classes)
+│   │   ├── repository_ports.py           # Repository ABCs
+│   │   └── service_ports.py              # External service ABCs
 │   ├── dtos/                             # Data Transfer Objects
+│   │   ├── session_dtos.py
+│   │   ├── agent_dtos.py
+│   │   ├── task_dtos.py
+│   │   └── context_dtos.py
 │   └── use_cases/                        # Specific application use cases
 │
 ├── infrastructure/                       # 🔌 ADAPTERS & IO
@@ -183,7 +220,9 @@ orchestrator/src/industrial_orchestrator/
 │   │   └── models.py                     # SQLAlchemy models & triggers
 │   ├── repositories/
 │   │   ├── base.py                       # Generic repository with Unit of Work
-│   │   └── session_repository.py         # Session-specific data access
+│   │   ├── session_repository.py         # Session-specific data access
+│   │   ├── agent_repository.py           # Redis-backed agent storage
+│   │   └── context_repository.py         # Hybrid Redis/PostgreSQL context storage
 │   ├── locking/
 │   │   └── distributed_lock.py           # Redis-based fair locking
 │   ├── adapters/
@@ -196,14 +235,56 @@ orchestrator/src/industrial_orchestrator/
 │       └── redis_exceptions.py
 │
 └── presentation/                         # 🖥️ ENTRY POINTS
-    ├── api/                              # FastAPI routes (Scaffolded)
-    ├── cli/                              # CLI commands (Scaffolded)
-    └── rpc/                              # RPC endpoints (Scaffolded)
+    ├── api/                              # FastAPI routes
+    │   ├── main.py                       # Application factory
+    │   ├── dependencies.py               # Dependency injection
+    │   ├── middleware/                   # Request/Error handling
+    │   └── routers/
+    │       ├── sessions.py               # /api/v1/sessions
+    │       ├── agents.py                 # /api/v1/agents
+    │       ├── tasks.py                  # /api/v1/tasks
+    │       └── contexts.py               # /api/v1/contexts
+    ├── websocket/                        # Real-time updates
+    │   ├── connection_manager.py         # WebSocket connection pool
+    │   └── session_events.py             # Session event broadcasting
+    ├── cli/                              # CLI commands
+    └── rpc/                              # RPC endpoints
 ```
 
 ---
 
-## 4. Development Workflow
+## 4. API Reference
+
+### REST Endpoints
+
+| Endpoint | Method | Description |
+|:---------|:------:|:------------|
+| `/api/v1/sessions` | GET | List sessions with filtering |
+| `/api/v1/sessions` | POST | Create new session |
+| `/api/v1/sessions/{id}` | GET | Get session details |
+| `/api/v1/sessions/{id}/start` | POST | Start session execution |
+| `/api/v1/sessions/{id}/complete` | POST | Mark session complete |
+| `/api/v1/sessions/{id}/fail` | POST | Mark session failed |
+| `/api/v1/agents` | GET | List registered agents |
+| `/api/v1/agents` | POST | Register new agent |
+| `/api/v1/agents/route` | POST | Route task to best agent |
+| `/api/v1/tasks` | POST | Create new task |
+| `/api/v1/tasks/{id}/decompose` | POST | Decompose task into subtasks |
+| `/api/v1/contexts` | POST | Create execution context |
+| `/api/v1/contexts/merge` | POST | Merge multiple contexts |
+| `/health` | GET | Health check |
+| `/ready` | GET | Readiness check |
+
+### WebSocket Endpoints
+
+| Endpoint | Description |
+|:---------|:------------|
+| `/ws/sessions` | Subscribe to all session events |
+| `/ws/sessions/{id}` | Subscribe to specific session events |
+
+---
+
+## 5. Development Workflow
 
 ### Standards
 *   **Code Style:** Strict adherence to `black`, `isort`, and `flake8`.
@@ -214,52 +295,52 @@ orchestrator/src/industrial_orchestrator/
 
 ### Key Commands
 ```bash
-# Run tests
+# Run all tests (212 tests)
 poetry run pytest
+
+# Run unit tests only
+poetry run pytest tests/unit
 
 # Run migrations
 poetry run alembic upgrade head
 
 # Start development server
 poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reload
+
+# Start dashboard
+cd dashboard && npm run dev
 ```
 
 ---
 
-## 5. Unfinished Work & Roadmap
+## 6. Test Coverage
 
-While the core foundation is solid, the following areas require implementation to complete the original design:
-
-### Phase 2.2: Multi-Agent Intelligence (Remaining)
-*   **Agent Registry:** A mechanism to register, discover, and manage agent instances dynamically.
-*   **Context Management:** A service to handle shared context (files, variables, knowledge) between agents and sessions.
-*   **Conflict Resolution:** Logic to detect and resolve conflicts when multiple agents modify the same resources.
-
-### Phase 2.3: Dashboard (Planned)
-*   **Next.js Frontend:** A "Brutalist" dashboard for monitoring sessions.
-*   **WebSocket Integration:** Real-time updates from the Orchestrator.
-
-### Phase 2.4: Production Hardening (Planned)
-*   **Kubernetes Manifests:** Helm charts or raw manifests for deployment.
-*   **CI/CD Pipelines:** GitHub Actions for automated testing and deployment.
-*   **Prometheus/Grafana:** Complete dashboard configuration for metrics.
+| Component | Tests | Status |
+|:----------|------:|:------:|
+| Session Entity | 42 | ✅ |
+| Agent Entity | 54 | ✅ |
+| Task Entity | 53 | ✅ |
+| Context Entity | 39 | ✅ |
+| Task Decomposition Service | 24 | ✅ |
+| **Total** | **212** | ✅ |
 
 ---
 
-## 6. Execution Plan for Remaining Work
+## 7. Roadmap
 
-### Week 2 (Current) - Finish Intelligence Layer
-1.  Implement **Agent Registry** (Domain & Infrastructure).
-2.  Implement **Context Service** (Application Layer).
-3.  Implement **Conflict Detection** logic.
-4.  Expose all services via **FastAPI** (Presentation Layer).
+### ✅ Phase 2.2: Multi-Agent Intelligence (Complete)
+- Agent Registry with capability-based routing
+- Context Management with scope-based access
+- Task Decomposition with templates (Microservice, CRUD, Security)
+- Full API layer with REST and WebSocket endpoints
+- 212 comprehensive unit tests
 
-### Week 3 - Dashboard & Visualization
-1.  Initialize **Next.js** project in `dashboard/`.
-2.  Implement **WebSocket** endpoints in Orchestrator.
-3.  Build **Session Monitor** and **Task Graph** UI components.
+### 🔄 Phase 2.3: Dashboard (In Progress)
+- Next.js frontend initialized
+- WebSocket backend support implemented
+- Remaining: Dashboard UI components
 
-### Week 4 - Production Readiness
-1.  Create **Kubernetes** deployment files.
-2.  Set up **Prometheus** metrics export.
-3.  Final **Security Audit** and performance tuning.
+### 🔲 Phase 2.4: Production Hardening (Planned)
+- Kubernetes manifests and Helm charts
+- CI/CD pipelines (GitHub Actions)
+- Prometheus/Grafana monitoring dashboards

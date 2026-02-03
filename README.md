@@ -1,223 +1,299 @@
-# OpenCode Industrial Orchestrator
+<p align="center">
+  <img src="https://img.shields.io/badge/🔧-INDUSTRIAL_ORCHESTRATOR-000000?style=for-the-badge&labelColor=FFFFFF" alt="Industrial Orchestrator"/>
+</p>
 
-![Status](https://img.shields.io/badge/Status-Phase_2.2_Active-orange?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+<p align="center">
+  <strong>"Industrial Cybernetics"</strong> — A utilitarian, transparent orchestration interface<br/>prioritizing ruthless efficiency, visibility, and graceful degradation.
+</p>
 
-> **"Industrial Cybernetics"** — A utilitarian, transparent orchestration interface prioritizing ruthless efficiency, visibility ("Glass Box"), and graceful degradation.
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Phase_2.2_Complete-brightgreen?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/Tests-212_Passing-success?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/Architecture-Hexagonal-7B4EA8?style=flat-square" alt="Architecture"/>
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"/>
+</p>
 
-## 📖 Overview
+---
 
-The **OpenCode Industrial Orchestrator** is a robust, production-grade system designed to manage, monitor, and orchestrate autonomous coding sessions. Unlike generic agent frameworks, this system is built on **Hexagonal Architecture (Ports & Adapters)** principles to ensure strict domain isolation, high testability, and infrastructure resilience.
+## 🎯 Why This Project?
 
-It serves as the central nervous system for autonomous development, handling:
-*   **Session Lifecycle Management** with rigid state machine validation.
-*   **Multi-Agent Coordination** using capability-based routing.
-*   **Task Decomposition** via advanced heuristics and templates.
-*   **Distributed Concurrency** with fair locking and deadlock prevention.
+Modern AI agents can write code, but **who orchestrates the agents?**
+
+The **OpenCode Industrial Orchestrator** is the missing control plane for autonomous development. It provides:
+
+| Challenge | Solution |
+|:----------|:---------|
+| **Agent Chaos** | Centralized registry with capability-based routing |
+| **Lost Context** | Shared execution context with conflict detection |
+| **Task Complexity** | Intelligent decomposition using proven templates |
+| **Blind Debugging** | "Glass Box" monitoring with real-time WebSocket updates |
+| **Infrastructure Fragility** | Distributed locking, circuit breakers, graceful degradation |
+
+---
+
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🧠 Multi-Agent Intelligence
+- **Agent Registry** — Dynamic registration and discovery
+- **Capability Routing** — Match tasks to specialist agents
+- **Performance Tiers** — Promote/demote based on success
+- **Load Balancing** — Prevent overloading any single agent
+
+</td>
+<td width="50%">
+
+### 📋 Task Decomposition
+- **Heuristic Analysis** — Estimate complexity from requirements
+- **Templates** — Microservice, CRUD, Security patterns
+- **Dependency DAG** — Topological ordering with cycle detection
+- **Critical Path** — Identify bottlenecks automatically
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🔒 Industrial Resilience
+- **Distributed Locking** — Fair queues with TTL
+- **Circuit Breakers** — Fail fast, recover smart
+- **Optimistic Locking** — Concurrent session safety
+- **Soft Deletion** — Recovery from accidents
+
+</td>
+<td width="50%">
+
+### 👁️ Glass Box Monitoring
+- **Session State Machine** — Rigid, validated transitions
+- **Real-time WebSocket** — Subscribe to session events
+- **Execution Metrics** — Track duration, tokens, quality
+- **Checkpoint Recovery** — Resume from last known state
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 🏗️ Architecture
 
-The system follows a strict **Hexagonal Architecture**, separating the core business logic from the outside world.
-
-### Application Logic Flow
-
-The following diagram illustrates the resilient flow of a session start operation, highlighting the interaction between the Application Service, Distributed Locking mechanism, and Domain Layer.
-
-```mermaid
-sequenceDiagram
-    participant API as 🔌 API Layer
-    participant Svc as ⚙️ SessionService
-    participant Lock as 🔒 DistributedLock
-    participant Repo as 💾 Repository
-    participant Dom as 🧠 Domain Entity
-
-    Note over API, Dom: Transaction Boundary
-    
-    API->>Svc: start_session(id)
-    
-    activate Svc
-    Svc->>Lock: acquire(resource=id, timeout=30s)
-    
-    alt Lock Acquired
-        Lock-->>Svc: True
-        
-        Svc->>Repo: get_by_id(id)
-        Repo-->>Svc: SessionEntity
-        
-        Svc->>Dom: start_execution()
-        activate Dom
-        Note right of Dom: Validates State Transition<br/>(PENDING -> RUNNING)
-        Dom-->>Svc: Success
-        deactivate Dom
-        
-        Svc->>Repo: update(session)
-        Repo-->>Svc: UpdatedEntity
-        
-        Svc->>Lock: release()
-        Lock-->>Svc: True
-        
-        Svc-->>API: SessionResponse
-    else Lock Timeout / Contention
-        Lock-->>Svc: False
-        Svc-->>API: 409 Conflict (Retryable)
-    end
-    deactivate Svc
-```
-
-### System Interaction
-
-High-level view of how users and agents interact with the Orchestrator.
+The system follows **Hexagonal Architecture** (Ports & Adapters) for maximum testability and domain isolation.
 
 ```mermaid
 graph LR
-    User[👨‍💻 User / CLI] -->|HTTP/REST| API[Orchestrator API]
+    User[👨‍💻 Developer] -->|REST/WS| API[Orchestrator API]
     
-    subgraph "Industrial Orchestrator"
-        API --> Service[Session Service]
-        Service --> Planner[Task Decomposition]
-        
-        subgraph "Core Domain"
-            Entity[Session & Agent Entities]
-        end
-        
-        Service --> Entity
+    subgraph "Core Domain"
+        API --> Services[Services Layer]
+        Services --> Entities[Domain Entities]
     end
     
-    subgraph "Infrastructure Adapters"
-        Service -->|Persist| PG[(PostgreSQL)]
-        Service -->|Coordinate| Redis[(Redis)]
-        Service -->|Delegate| OpenCode[OpenCode API]
+    subgraph "Infrastructure"
+        Services -->|Persist| PG[(PostgreSQL)]
+        Services -->|Coordinate| Redis[(Redis)]
+        Services -->|Delegate| OpenCode[OpenCode API]
     end
     
-    OpenCode -->|Execute| Agents[🤖 Specialized Agents]
+    OpenCode --> Agents[🤖 Specialized Agents]
     
     style User fill:#fff,stroke:#333,stroke-width:2px
     style PG fill:#336791,stroke:#333,color:#fff
     style Redis fill:#D82C20,stroke:#333,color:#fff
 ```
 
-## 📂 File Hierarchy
+### Layer Responsibilities
 
-A curated view of the project's structure, highlighting the separation of concerns.
+| Layer | Purpose | Examples |
+|:------|:--------|:---------|
+| **Domain** | Pure business logic, no I/O | `SessionEntity`, `TaskEntity`, `AgentRegistry` |
+| **Application** | Orchestration, use cases | `SessionService`, `TaskDecompositionService` |
+| **Infrastructure** | External adapters | `SessionRepository`, `DistributedLock` |
+| **Presentation** | Entry points | REST API, WebSocket, CLI |
 
-```text
-opencode-industrial-orchestrator/
-├── 📂 orchestrator/                  # Core Python Backend
-│   ├── 📂 src/industrial_orchestrator/
-│   │   ├── 📂 domain/                # 🧠 PURE BUSINESS LOGIC (No external deps)
-│   │   │   ├── 📂 entities/          # Core models (Session, Agent, Task)
-│   │   │   │   ├── agent.py          # Agent specialization logic
-│   │   │   │   ├── session.py        # Session state machine
-│   │   │   │   └── task.py           # Task decomposition & DAG
-│   │   │   ├── 📂 value_objects/     # Immutable domain values (Status, Metrics)
-│   │   │   ├── 📂 events/            # Domain events (SessionCreated, etc.)
-│   │   │   └── 📂 exceptions/        # Domain-specific errors
-│   │   │
-│   │   ├── 📂 application/           # ⚙️ ORCHESTRATION LOGIC
-│   │   │   ├── 📂 services/          # Business use cases
-│   │   │   │   ├── session_service.py # Lifecycle management
-│   │   │   │   └── task_decomposition_service.py
-│   │   │   └── 📂 ports/             # Interfaces for infrastructure
-│   │   │
-│   │   ├── 📂 infrastructure/        # 🔌 ADAPTERS & IO
-│   │   │   ├── 📂 database/          # SQLAlchemy Models & Config
-│   │   │   ├── 📂 repositories/      # Data access implementations
-│   │   │   │   └── session_repository.py
-│   │   │   ├── 📂 locking/           # Distributed locking (Redis)
-│   │   │   │   └── distributed_lock.py
-│   │   │   ├── 📂 adapters/          # External API clients
-│   │   │   │   └── opencode_client.py
-│   │   │   └── 📂 config/            # Env vars & connections
-│   │   │
-│   │   └── 📂 presentation/          # 🖥️ ENTRY POINTS
-│   │       └── 📂 api/               # FastAPI routes
-│   │
-│   ├── 📂 tests/                     # 🧪 COMPREHENSIVE TEST SUITE
-│   │   ├── 📂 unit/                  # Fast domain tests
-│   │   └── 📂 integration/           # DB/Redis integration tests
-│   │
-│   └── 📂 alembic/                   # Database Migrations
-│
-├── 📂 infrastructure/                # 🏗️ OPS CONFIGURATION
-│   └── 📂 monitoring/                # Prometheus/Grafana configs
-├── docker-compose.yml                # Main service definition
-└── GEMINI.md                         # Context documentation
-```
+---
 
-## ✨ Key Features
-
-*   **Resilient State Management:** PostgreSQL persistence with optimistic locking and soft deletion.
-*   **Distributed Coordination:** Redis-based fair locking queues with deadlock detection and auto-renewal.
-*   **Multi-Agent Intelligence:**
-    *   **Specialized Roles:** Architect, Implementer, Reviewer, Debugger.
-    *   **Capability Routing:** Matches tasks to agents based on skills and performance tier.
-    *   **Performance Tracking:** Real-time metrics on success rates, quality, and cost.
-*   **Task Decomposition:**
-    *   **Heuristic Analysis:** Estimates complexity based on requirement text.
-    *   **Template Support:** Microservice, CRUD, and Security implementation patterns.
-    *   **Dependency Management:** DAG validation and critical path calculation.
-*   **Glass Box Monitoring:** Comprehensive metrics for every transition and operation.
-
-## 🚀 Deployment & Usage
+## 🚀 Quick Start
 
 ### Prerequisites
-*   Docker & Docker Compose
-*   Python 3.11+
-*   Poetry
+- Docker & Docker Compose
+- Python 3.11+
+- Poetry (`pip install poetry`)
+- Node.js 18+ (for dashboard)
 
-### Quick Start (Local Development)
+### 1. Start Infrastructure
+```bash
+docker-compose up -d postgres redis opencode-server
+```
 
-1.  **Initialize Infrastructure:**
-    ```bash
-    docker-compose up -d postgres redis opencode-server
-    ```
+### 2. Install & Run Backend
+```bash
+cd orchestrator
+poetry install
+poetry run alembic upgrade head
+poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reload
+```
 
-2.  **Install Dependencies:**
-    ```bash
-    cd orchestrator
-    poetry install
-    ```
+### 3. Run Tests
+```bash
+poetry run pytest  # 212 tests
+```
 
-3.  **Run Migrations:**
-    ```bash
-    poetry run alembic upgrade head
-    ```
+### 4. Start Dashboard (Optional)
+```bash
+cd dashboard
+npm install
+npm run dev
+```
 
-4.  **Start the Orchestrator:**
-    ```bash
-    poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reload
-    ```
+---
 
-### Testing
+## 📡 API Reference
 
-We strictly adhere to TDD (Test-Driven Development).
+### REST Endpoints
+
+```
+POST   /api/v1/sessions              Create session
+GET    /api/v1/sessions              List sessions
+GET    /api/v1/sessions/{id}         Get session
+POST   /api/v1/sessions/{id}/start   Start execution
+POST   /api/v1/sessions/{id}/complete Mark complete
+
+POST   /api/v1/agents                Register agent
+GET    /api/v1/agents                List agents
+POST   /api/v1/agents/route          Route task to agent
+
+POST   /api/v1/tasks                 Create task
+POST   /api/v1/tasks/{id}/decompose  Decompose into subtasks
+
+POST   /api/v1/contexts              Create context
+POST   /api/v1/contexts/merge        Merge contexts
+```
+
+### WebSocket Endpoints
+
+```
+WS     /ws/sessions                  All session events
+WS     /ws/sessions/{id}             Specific session events
+```
+
+---
+
+## 📂 Project Structure
+
+```
+opencode-industrial-orchestrator/
+├── orchestrator/                     # Python Backend
+│   ├── src/industrial_orchestrator/
+│   │   ├── domain/                   # 🧠 Business Logic
+│   │   │   ├── entities/             # Session, Agent, Task, Context
+│   │   │   ├── value_objects/        # Status, Metrics
+│   │   │   └── exceptions/           # Domain errors
+│   │   ├── application/              # ⚙️ Services
+│   │   │   ├── services/             # Session, Agent, Context, Task
+│   │   │   ├── ports/                # Abstract interfaces
+│   │   │   └── dtos/                 # Request/Response objects
+│   │   ├── infrastructure/           # 🔌 Adapters
+│   │   │   ├── repositories/         # PostgreSQL, Redis
+│   │   │   └── locking/              # Distributed locks
+│   │   └── presentation/             # 🖥️ Entry Points
+│   │       ├── api/                  # FastAPI routers
+│   │       └── websocket/            # Real-time events
+│   ├── tests/                        # 212 unit tests
+│   └── alembic/                      # Database migrations
+│
+├── dashboard/                        # Next.js Frontend
+│   └── src/                          # React components
+│
+└── infrastructure/                   # Docker & Monitoring
+```
+
+---
+
+## 🧪 Testing
+
+We practice **Test-Driven Development (TDD)** religiously.
+
+| Component | Tests |
+|:----------|------:|
+| Session Entity | 42 |
+| Agent Entity | 54 |
+| Task Entity | 53 |
+| Context Entity | 39 |
+| Task Decomposition Service | 24 |
+| **Total** | **212** |
 
 ```bash
 # Run all tests
-cd orchestrator
 poetry run pytest
 
-# Run only unit tests (fast)
-poetry run pytest tests/unit
+# Run with coverage
+poetry run pytest --cov=src
 
-# Run integration tests (requires Docker infra)
-poetry run pytest tests/integration
+# Run specific test file
+poetry run pytest tests/unit/domain/test_session_entity.py
 ```
 
-## 🛠️ Configuration
+---
 
-Key environment variables (defined in `.env`):
+## ⚙️ Configuration
 
 | Variable | Description | Default |
-| :--- | :--- | :--- |
-| `DB_HOST` | Database Host | `postgres` |
-| `REDIS_HOST` | Redis Host | `redis` |
-| `OPENCODE_HOST` | OpenCode API Host | `opencode-server` |
+|:---------|:------------|:--------|
+| `DB_HOST` | PostgreSQL host | `postgres` |
+| `REDIS_HOST` | Redis host | `redis` |
+| `OPENCODE_HOST` | OpenCode API host | `opencode-server` |
 | `MAX_CONCURRENT_SESSIONS` | Parallel execution limit | `25` |
-| `SESSION_TIMEOUT_SECONDS` | Hard timeout for sessions | `3600` |
+| `SESSION_TIMEOUT_SECONDS` | Hard timeout per session | `3600` |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. **TDD is mandatory** — Write tests before implementation
+2. **Hexagonal imports** — Domain never imports from Infrastructure
+3. **Code style** — Run `black`, `isort`, and `flake8`
+4. **Database changes** — Always use Alembic migrations
+
+### Development Workflow
+```bash
+# 1. Create feature branch
+git checkout -b feature/your-feature
+
+# 2. Write tests first
+poetry run pytest tests/unit/your_test.py
+
+# 3. Implement
+# ... write code ...
+
+# 4. Verify all tests pass
+poetry run pytest
+
+# 5. Submit PR
+```
+
+---
+
+## 📋 Roadmap
+
+- [x] **Phase 2.1** — Foundation & Core Orchestrator
+- [x] **Phase 2.2** — Multi-Agent Intelligence (212 tests ✅)
+- [ ] **Phase 2.3** — Dashboard & Visualization (In Progress)
+- [ ] **Phase 2.4** — Production Hardening (Kubernetes, CI/CD)
+
+---
 
 ## 📜 License
 
-This project is licensed under the MIT License.
+MIT License — See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <sub>Built with 🔧 industrial-grade precision</sub>
+</p>
