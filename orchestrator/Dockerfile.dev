@@ -1,0 +1,63 @@
+# Industrial Orchestrator - Development Image
+FROM python:3.11-slim as development
+
+# Industrial labeling
+LABEL maintainer="Industrial Orchestrator Team"
+LABEL version="1.0.0-dev"
+LABEL description="Industrial-grade OpenCode Orchestrator"
+
+# Set industrial environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VERSION=1.7.1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+# Install system dependencies for industrial development
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    gcc \
+    g++ \
+    postgresql-client \
+    redis-tools \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry for industrial dependency management
+RUN pip install "poetry==$POETRY_VERSION"
+
+# Set work directory with industrial structure
+WORKDIR /app
+
+# Copy industrial dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Configure Poetry for industrial development
+RUN poetry config virtualenvs.create true \
+    && poetry config virtualenvs.in-project true \
+    && poetry install --no-root --with dev
+
+# Copy industrial source code
+COPY . .
+
+# Create industrial directory structure
+RUN mkdir -p /app/logs /app/data /app/cache
+
+# Set industrial permissions
+RUN chmod +x /app/scripts/*.sh 2>/dev/null || true
+
+# Expose industrial ports
+EXPOSE 8000  # API
+EXPOSE 5678  # Debug
+
+# Set industrial entrypoint
+ENTRYPOINT ["poetry", "run"]
+
+# Default industrial command
+CMD ["uvicorn", "src.industrial_orchestrator.presentation.api.main:app", \
+     "--host", "0.0.0.0", "--port", "8000", "--reload"]
