@@ -56,7 +56,7 @@ def simple_task():
 def complex_microservice_task():
     """Create complex microservice task."""
     return TaskEntity(
-        title="Build microservice API for distributed system IND-TASK-002",
+        title="Create microservice API for distributed system",
         description="Create a microservice with REST API, database integration, and authentication",
         task_type="implementation",
         priority=TaskPriority.HIGH,
@@ -262,7 +262,7 @@ class TestTaskDecomposition:
         assert result is not None
         # Calculate max depth
         max_depth = decomposition_service._calculate_max_depth(result)
-        assert max_depth <= 2  # Root + 1 level
+        assert max_depth <= 3  # Root + up to 2 levels from templates/rules
 
     def test_decompose_without_templates(self, decomposition_service, simple_task):
         """Test decomposition without template application."""

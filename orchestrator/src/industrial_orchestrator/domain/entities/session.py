@@ -67,7 +67,7 @@ class SessionEntity(BaseModel):
     
     # Execution context
     agent_config: Dict[str, Any] = Field(default_factory=dict)
-    model_identifier: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
+    model_identifier: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_\-\.]+/[a-zA-Z0-9_\-\.]+$")
     initial_prompt: str = Field(..., min_length=1, max_length=10000)
     
     # Resource allocation

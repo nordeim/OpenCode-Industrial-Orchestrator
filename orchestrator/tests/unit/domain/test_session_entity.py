@@ -12,7 +12,7 @@ from src.industrial_orchestrator.domain.entities.session import SessionEntity, S
 from src.industrial_orchestrator.domain.value_objects.session_status import SessionStatus
 from src.industrial_orchestrator.domain.exceptions.session_exceptions import InvalidSessionTransition
 
-from ..factories.session_factory import SessionEntityFactory, create_session_batch
+from .factories.session_factory import SessionEntityFactory, create_session_batch
 
 
 class TestSessionEntityCreation:

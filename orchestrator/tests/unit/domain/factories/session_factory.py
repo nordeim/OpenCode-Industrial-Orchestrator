@@ -114,14 +114,17 @@ class ExecutionMetricsFactory(factory.Factory):
     @factory.post_generation
     def add_warnings(self, create, extracted, **kwargs):
         """Add random warnings if needed"""
+        from faker import Faker
+        fake = Faker()
         if extracted is not None:
             self.warnings = extracted
-        elif factory.Faker('boolean', chance_of_getting_true=30):
+        elif fake.boolean(chance_of_getting_true=30):
+            num_warnings = fake.random_int(min=1, max=3)
             self.warnings = [{
-                'type': factory.Faker('random_element', elements=['performance', 'resource', 'quality']),
-                'message': factory.Faker('sentence'),
+                'type': fake.random_element(elements=['performance', 'resource', 'quality']),
+                'message': fake.sentence(),
                 'timestamp': datetime.now(timezone.utc).isoformat()
-            } for _ in range(factory.Faker('random_int', min=1, max=3))]
+            } for _ in range(num_warnings)]
 
 
 class SessionEntityFactory(factory.Factory):
