@@ -53,7 +53,7 @@ class SessionTypeDB(enum.Enum):
     INTEGRATION = "integration"
 
 
-class SessionPriorityDB(enum.IntegerEnum):
+class SessionPriorityDB(enum.IntEnum):
     """Database representation of session priority"""
     CRITICAL = 0
     HIGH = 1
@@ -252,7 +252,7 @@ class SessionModel(Base, TimestampMixin):
         comment="Session tags for categorization"
     )
     
-    metadata = Column(
+    meta_data = Column(
         JSONB,
         nullable=False,
         default=text("'{}'::jsonb"),
@@ -398,7 +398,7 @@ class SessionModel(Base, TimestampMixin):
             "memory_limit_mb": self.memory_limit_mb,
             "created_by": self.created_by,
             "tags": self.tags,
-            "metadata": self.metadata,
+            "metadata": self.meta_data,
             "version": self.version,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -737,7 +737,7 @@ class SessionCheckpointModel(Base):
         comment="Checkpoint creation timestamp"
     )
     
-    metadata = Column(
+    meta_data = Column(
         JSONB,
         nullable=False,
         default=text("'{}'::jsonb"),
@@ -766,7 +766,7 @@ class SessionCheckpointModel(Base):
             "sequence": self.sequence,
             "data": self.data,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "metadata": self.metadata,
+            "metadata": self.meta_data,
         }
 
 
