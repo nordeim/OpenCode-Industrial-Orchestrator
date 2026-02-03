@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import { useSession, useStartSession, useCancelSession } from "@/lib/api/sessions"
-import type { Session } from "@/lib/api/types"
+import { useStartSession, useCancelSession } from "@/lib/api/sessions"
+import type { Session, SessionStatus } from "@/lib/api/types"
 
 interface SessionHeaderProps {
   session: Session
@@ -14,7 +14,7 @@ export function SessionHeader({ session }: SessionHeaderProps) {
   const { mutate: startSession, isPending: isStarting } = useStartSession()
   const { mutate: cancelSession, isPending: isCancelling } = useCancelSession()
 
-  const statusVariant = {
+  const statusVariant: Record<SessionStatus, "success" | "warning" | "error" | "neutral"> = {
     RUNNING: "success",
     COMPLETED: "success",
     FAILED: "error",
@@ -22,7 +22,7 @@ export function SessionHeader({ session }: SessionHeaderProps) {
     PAUSED: "warning",
     CANCELLED: "neutral",
     QUEUED: "neutral",
-  }[session.status] as any
+  }
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b-2 border-border">
@@ -37,7 +37,7 @@ export function SessionHeader({ session }: SessionHeaderProps) {
           <h1 className="text-2xl font-bold tracking-tight font-mono">
             {session.title}
           </h1>
-          <Badge variant={statusVariant}>{session.status}</Badge>
+          <Badge variant={statusVariant[session.status]}>{session.status}</Badge>
         </div>
         
         <div className="flex gap-6 text-xs text-muted-foreground font-mono">

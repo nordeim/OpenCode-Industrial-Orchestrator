@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { useWebSocket } from "@/lib/websocket/provider"
-import { Badge } from "@/components/ui/badge"
 
 interface LogEntry {
   id: string
@@ -25,6 +24,7 @@ export function LiveLogs({ sessionId }: LiveLogsProps) {
   useEffect(() => {
     if (!sessionId) return
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleLog = (payload: any) => {
       // Validate payload structure (defensive programming)
       if (!payload || typeof payload !== 'object') return

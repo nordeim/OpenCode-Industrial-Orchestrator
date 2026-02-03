@@ -68,13 +68,17 @@ export function WebSocketProvider({
     const [status, setStatus] = useState<ConnectionStatus>("disconnected");
     const [clientId, setClientId] = useState<string | null>(null);
 
-    // Connect to WebSocket
+    // Keep track of the current endpoint to reconnect to
+    const activeEndpointRef = useRef(defaultEndpoint);
+
+    // Connect function
     const connect = useCallback((endpoint: string) => {
         // Clean up existing connection
         if (wsRef.current) {
             wsRef.current.close();
         }
 
+        activeEndpointRef.current = endpoint;
         setStatus("connecting");
         const url = `${WS_BASE_URL}${endpoint}`;
 
@@ -122,28 +126,49 @@ export function WebSocketProvider({
                 setStatus("disconnected");
                 setClientId(null);
                 console.log("[WS] Disconnected:", event.code, event.reason);
-
-                // Auto-reconnect with exponential backoff
-                if (autoConnect && reconnectAttempts.current < 5) {
-                    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-                    reconnectAttempts.current++;
-
-                    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`);
-                    reconnectTimeoutRef.current = setTimeout(() => {
-                        connect(endpoint);
-                    }, delay);
-                }
+                
+                // Trigger reconnection via effect by updating a trigger state if needed
+                // or handle it here if we can avoid the circular dependency.
+                // We will handle it by checking the ref in a separate useEffect or timeout that calls a stable ref.
             };
         } catch (err) {
             console.error("[WS] Failed to connect:", err);
             setStatus("error");
         }
-    }, [autoConnect]);
+    }, []);
+
+    // Reconnection Logic
+    // We use a ref to the connect function to allow calling it from the timeout
+    // without adding it to the dependency array or causing circular issues.
+    const connectRef = useRef(connect);
+    
+    // Update ref when connect changes
+    useEffect(() => {
+        connectRef.current = connect;
+    }, [connect]);
+
+    useEffect(() => {
+        // If disconnected and should auto-reconnect
+        if (status === "disconnected" && autoConnect && reconnectAttempts.current < 5) {
+             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+             
+             // Only schedule if not already scheduled (though we clear on disconnect usually)
+             if (!reconnectTimeoutRef.current) {
+                 console.log(`[WS] Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1})`);
+                 reconnectTimeoutRef.current = setTimeout(() => {
+                     reconnectAttempts.current++;
+                     connectRef.current(activeEndpointRef.current);
+                     reconnectTimeoutRef.current = null;
+                 }, delay);
+             }
+        }
+    }, [status, autoConnect]);
 
     // Disconnect from WebSocket
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
         }
         reconnectAttempts.current = 5; // Prevent auto-reconnect
 
@@ -183,11 +208,16 @@ export function WebSocketProvider({
 
     // Auto-connect on mount
     useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
         if (autoConnect) {
-            connect(defaultEndpoint);
+            // Defer connection to avoid synchronous state update in effect
+            timeoutId = setTimeout(() => {
+                connect(defaultEndpoint);
+            }, 0);
         }
 
         return () => {
+            if (timeoutId) clearTimeout(timeoutId);
             disconnect();
         };
     }, [autoConnect, defaultEndpoint, connect, disconnect]);
@@ -283,4 +313,3 @@ export function useSessionEvents(
 
     return { status };
 }
-

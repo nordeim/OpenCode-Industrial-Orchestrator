@@ -3,36 +3,32 @@
  * 
  * Main dashboard page with:
  * - Statistics cards showing session/agent/task counts
- * - Active sessions list
+ * - Active sessions list (Recent activity)
  * - System health indicator
  */
 
-// Mock data for initial development
-const MOCK_STATS = {
-  running: 12,
-  pending: 8,
-  completed: 156,
-  failed: 3,
-  totalAgents: 5,
-  activeAgents: 4,
-};
+"use client"
 
-const MOCK_SESSIONS = [
-  { id: "1", title: "Session-Alpha-001", status: "RUNNING", startedAt: "5m ago" },
-  { id: "2", title: "Session-Beta-002", status: "RUNNING", startedAt: "12m ago" },
-  { id: "3", title: "Session-Gamma-003", status: "PENDING", startedAt: "—" },
-  { id: "4", title: "Session-Delta-004", status: "COMPLETED", startedAt: "1h ago" },
-];
+import Link from "next/link"
+import { useSessionStatistics, useSessions } from "@/lib/api/sessions"
+import { useAgentPerformance } from "@/lib/api/agents"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 export default function DashboardPage() {
+  // Data Fetching
+  const { data: stats, isLoading: isStatsLoading } = useSessionStatistics()
+  const { data: agents, isLoading: isAgentsLoading } = useAgentPerformance()
+  const { data: recentSessions, isLoading: isSessionsLoading } = useSessions({ pageSize: 5 })
+
   return (
     <div className="p-8">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight mb-2">
+        <h1 className="text-2xl font-bold tracking-tight mb-2 font-mono">
           SYSTEM OVERVIEW
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm font-mono">
           Real-time orchestration status and session monitoring
         </p>
       </header>
@@ -43,23 +39,27 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             label="RUNNING"
-            value={MOCK_STATS.running}
+            value={stats?.by_status.RUNNING ?? 0}
             status="running"
+            loading={isStatsLoading}
           />
           <StatCard
             label="PENDING"
-            value={MOCK_STATS.pending}
+            value={stats?.by_status.PENDING ?? 0}
             status="pending"
+            loading={isStatsLoading}
           />
           <StatCard
             label="COMPLETED"
-            value={MOCK_STATS.completed}
+            value={stats?.by_status.COMPLETED ?? 0}
             status="completed"
+            loading={isStatsLoading}
           />
           <StatCard
             label="FAILED"
-            value={MOCK_STATS.failed}
+            value={stats?.by_status.FAILED ?? 0}
             status="failed"
+            loading={isStatsLoading}
           />
         </div>
       </section>
@@ -68,68 +68,103 @@ export default function DashboardPage() {
       <section className="mb-8">
         <h2 className="text-label mb-4">AGENT STATUS</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="industrial-card">
-            <div className="text-muted-foreground text-xs mb-1">TOTAL AGENTS</div>
-            <div className="text-3xl font-bold tabular-nums">{MOCK_STATS.totalAgents}</div>
-          </div>
-          <div className="industrial-card">
-            <div className="text-muted-foreground text-xs mb-1">ACTIVE NOW</div>
-            <div className="text-3xl font-bold tabular-nums text-status-running">
-              {MOCK_STATS.activeAgents}
+          <Card className="flex flex-col justify-center">
+            <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">
+              TOTAL AGENTS
             </div>
-          </div>
+            {isAgentsLoading ? (
+              <div className="h-8 w-16 bg-muted animate-pulse" />
+            ) : (
+              <div className="text-3xl font-bold tabular-nums font-mono">
+                {agents?.total_agents ?? 0}
+              </div>
+            )}
+          </Card>
+          <Card className="flex flex-col justify-center">
+            <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">
+              ACTIVE NOW
+            </div>
+            {isAgentsLoading ? (
+              <div className="h-8 w-16 bg-muted animate-pulse" />
+            ) : (
+              <div className="text-3xl font-bold tabular-nums font-mono text-status-running">
+                {agents?.active_agents ?? 0}
+              </div>
+            )}
+          </Card>
         </div>
       </section>
 
       {/* Active Sessions Table */}
       <section>
-        <h2 className="text-label mb-4">ACTIVE SESSIONS</h2>
-        <div className="industrial-card p-0 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-border bg-muted">
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Session
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Started
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_SESSIONS.map((session) => (
-                <tr
-                  key={session.id}
-                  className="border-b border-border hover:bg-muted transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{session.title}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={session.status} />
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-sm tabular-nums">
-                    {session.startedAt}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="text-accent hover:underline text-sm">
-                      View →
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-label">RECENT ACTIVITY</h2>
+          <Link href="/sessions" className="text-xs text-accent hover:underline font-mono uppercase">
+            View All →
+          </Link>
         </div>
+        
+        <Card className="p-0 overflow-hidden min-h-[200px]">
+          {isSessionsLoading ? (
+            <div className="p-6 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-muted/50 animate-pulse" />
+              ))}
+            </div>
+          ) : recentSessions?.items.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground font-mono text-sm">
+              NO RECENT ACTIVITY
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-border bg-muted">
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                    Session
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                    Started
+                  </th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentSessions?.items.map((session) => (
+                  <tr
+                    key={session.id}
+                    className="border-b border-border hover:bg-muted transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium font-mono">{session.title}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={session.status} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-sm tabular-nums font-mono">
+                      {session.started_at ? new Date(session.started_at).toLocaleTimeString() : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link 
+                        href={`/sessions/${session.id}`}
+                        className="text-accent hover:underline text-sm font-mono uppercase"
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
       </section>
     </div>
-  );
+  )
 }
 
 /**
@@ -138,30 +173,36 @@ export default function DashboardPage() {
 function StatCard({
   label,
   value,
-  status
+  status,
+  loading
 }: {
-  label: string;
-  value: number;
-  status: "running" | "pending" | "completed" | "failed";
+  label: string
+  value: number
+  status: "running" | "pending" | "completed" | "failed"
+  loading: boolean
 }) {
   const statusColors = {
     running: "text-status-running",
     pending: "text-status-pending",
     completed: "text-status-completed",
     failed: "text-status-failed",
-  };
+  }
 
   return (
-    <div className="industrial-card">
+    <Card className="flex flex-col justify-center">
       <div className="flex items-center gap-2 mb-2">
-        <span className={`status-dot ${status === "running" ? "status-running" : `bg-status-${status}`}`}></span>
-        <span className="text-muted-foreground text-xs">{label}</span>
+        <span className={`w-2 h-2 ${status === "running" ? "bg-status-running animate-pulse" : `bg-status-${status}`}`}></span>
+        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`text-3xl font-bold tabular-nums ${statusColors[status]}`}>
-        {value}
-      </div>
-    </div>
-  );
+      {loading ? (
+        <div className="h-8 w-16 bg-muted animate-pulse" />
+      ) : (
+        <div className={`text-3xl font-bold tabular-nums font-mono ${statusColors[status]}`}>
+          {value}
+        </div>
+      )}
+    </Card>
+  )
 }
 
 /**
@@ -174,17 +215,11 @@ function StatusBadge({ status }: { status: string }) {
     COMPLETED: "bg-status-completed/20 text-status-completed border-status-completed",
     FAILED: "bg-status-failed/20 text-status-failed border-status-failed",
     PAUSED: "bg-status-paused/20 text-status-paused border-status-paused",
-  };
+  }
 
   return (
-    <span
-      className={`
-        inline-flex items-center px-2 py-1 text-xs font-semibold 
-        border uppercase tracking-wider
-        ${statusStyles[status] || "bg-muted text-muted-foreground border-border"}
-      `}
-    >
+    <Badge className={`border ${statusStyles[status] || "bg-muted text-muted-foreground border-border"}`}>
       {status}
-    </span>
-  );
+    </Badge>
+  )
 }
