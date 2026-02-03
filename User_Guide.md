@@ -12,7 +12,25 @@ The **OpenCode Industrial Orchestrator** is a production-grade control plane for
 *   **Resilient:** Distributed locking and automatic checkpointing.
 *   **Observable:** A "Glass Box" dashboard providing real-time telemetry into agent thought processes.
 
-This guide covers the installation, usage, and operational monitoring of the system.
+### System Architecture
+
+The system operates as a central hub connecting specialized agents, shared memory, and external tools.
+
+```mermaid
+graph TD
+    User[👨‍💻 User] -->|Commands| Dashboard[🖥️ Dashboard]
+    Dashboard -->|API| Orchestrator[⚙️ Orchestrator Core]
+    
+    subgraph "Industrial Cluster"
+        Orchestrator -->|Manage| Session[Session State Machine]
+        Orchestrator -->|Route| Agents[🤖 Agent Registry]
+        Orchestrator -->|Store| Context[🧠 Shared Context]
+    end
+    
+    Agents -->|Execute| OpenCode[OpenCode API]
+    Session -->|Persist| DB[(PostgreSQL)]
+    Session -->|Lock| Redis[(Redis)]
+```
 
 ---
 
@@ -63,6 +81,14 @@ The central command list for all coding tasks.
 ### C. The Session Detail View (`/sessions/[id]`)
 This is the core "Glass Box" interface. It provides total transparency into a running session.
 
+```mermaid
+graph LR
+    Header[Header Controls] -->|Start/Stop| State[Session State]
+    State -->|Update| Timeline[Checkpoint Timeline]
+    State -->|Stream| Logs[Live Terminal]
+    State -->|Track| Metrics[Telemetry Gauges]
+```
+
 | Component | Function |
 |:----------|:---------|
 | **Header Controls** | **Start**, **Stop**, and **Retry** buttons. Status badges update in real-time. |
@@ -85,20 +111,42 @@ Visualize the work breakdown structure.
 
 ## 4. Operational Concepts
 
-### Sessions
-A **Session** is the fundamental unit of work. It represents a single goal (e.g., "Build a Login Page").
-*   **State Machine:** Sessions move through a rigid state machine. They cannot be "Stopped" if they are already "Completed".
-*   **Persistence:** If the server crashes, the session resumes from the last **Checkpoint** automatically.
+### Session Lifecycle
+A **Session** is the fundamental unit of work. It moves through a rigid state machine to ensure deterministic execution.
 
-### Agents
-**Agents** are specialized workers registered in the system.
-*   **Routing:** The system automatically routes tasks to the best available agent based on **Capabilities** and **Load**.
-*   **Heartbeats:** Agents must send periodic heartbeats. If an agent goes silent, it is marked `OFFLINE` and its tasks are re-queued.
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> RUNNING: Start Execution
+    
+    state RUNNING {
+        [*] --> PLANNING
+        PLANNING --> EXECUTING
+        EXECUTING --> REVIEWING
+        REVIEWING --> EXECUTING: Changes Needed
+        REVIEWING --> [*]: Approved
+    }
+    
+    RUNNING --> PAUSED: User Pause
+    PAUSED --> RUNNING: User Resume
+    
+    RUNNING --> COMPLETED: Success
+    RUNNING --> FAILED: Error/Timeout
+    
+    FAILED --> PENDING: Retry
+    COMPLETED --> [*]
+```
 
-### Context
-**Context** is the shared memory between agents.
-*   **Scopes:** Data can be scoped to a `SESSION`, a specific `TASK`, or `GLOBAL` (system-wide).
-*   **Conflict Resolution:** The system handles merging data when multiple agents update context simultaneously.
+### Agents & Routing
+**Agents** are specialized workers. The system uses a **Capability-Based Routing** algorithm.
+1.  **Task Analysis:** The system identifies required capabilities (e.g., `PYTHON`, `SECURITY_AUDIT`).
+2.  **Discovery:** It queries the **Agent Registry** for matching agents.
+3.  **Selection:** It selects the best agent based on **Availability** (lowest load) and **Performance Tier**.
+
+### Context & Memory
+**Context** is the shared memory layer.
+*   **Scopes:** Data can be scoped to a `SESSION` (all agents in session), a `TASK` (local scratchpad), or `GLOBAL` (cross-session knowledge).
+*   **Conflict Resolution:** The system automatically handles merging data when multiple agents update context simultaneously using version vectors.
 
 ---
 
@@ -121,13 +169,17 @@ Full Swagger documentation is available at `http://localhost:8000/docs`.
 
 ## 6. Observability & Monitoring
 
-For production environments, we expose industry-standard metrics.
+For production environments, we expose industry-standard metrics accessible via Grafana.
 
 ### Prometheus Metrics
 The API exposes a `/metrics` endpoint for scraping.
-*   `orchestrator_active_sessions`: Gauge of concurrent sessions.
-*   `orchestrator_tasks_total`: Counter of tasks processed.
-*   `http_request_duration_seconds`: API latency histograms.
+
+| Metric | Type | Description |
+|:-------|:-----|:------------|
+| `orchestrator_active_sessions` | Gauge | Number of currently running sessions |
+| `orchestrator_tasks_total` | Counter | Total tasks processed (success/fail) |
+| `http_request_duration_seconds` | Histogram | API latency distribution |
+| `orchestrator_agent_load` | Gauge | Current load factor per agent |
 
 ### Logging
 All logs are emitted in **Structured JSON** format to stdout, making them ready for ingestion by log aggregators (Elasticsearch, Datadog, Splunk).
