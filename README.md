@@ -1,3 +1,5 @@
+<img width="1352" height="686" alt="image" src="https://github.com/user-attachments/assets/d89018ed-4619-48a1-8880-da5161c817f1" />
+
 <p align="center">
   <img src="https://img.shields.io/badge/🔧-INDUSTRIAL_ORCHESTRATOR-000000?style=for-the-badge&labelColor=FFFFFF" alt="Industrial Orchestrator"/>
 </p>
