@@ -23,6 +23,8 @@ aiofiles = "23.2.1"
 python-multipart = "0.0.6"
 tenacity = "^8.2.3"
 networkx = "^3.2"
+structlog = "^24.1.0"
+prometheus-client = "^0.19.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "7.4.3"

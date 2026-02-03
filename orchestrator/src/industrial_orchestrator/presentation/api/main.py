@@ -20,13 +20,24 @@ from .routers import (
 )
 from .websocket import websocket_router, manager as ws_manager
 from .dependencies import get_settings
+from .middleware.metrics import PrometheusMiddleware, metrics_endpoint
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+# Configure structlog for JSON output (Industrial Standard)
+import structlog
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer(),
+    ],
+    logger_factory=structlog.PrintLoggerFactory(),
+    wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+    cache_logger_on_first_use=True,
 )
-logger = logging.getLogger("industrial_orchestrator")
+
+logger = structlog.get_logger("industrial_orchestrator")
 
 
 # ============================================================================
@@ -144,6 +155,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Register Prometheus Middleware
+    app.add_middleware(PrometheusMiddleware)
     
     # Register routers
     app.include_router(sessions_router, prefix="/api/v1")
@@ -153,6 +167,9 @@ def create_app() -> FastAPI:
     
     # Register WebSocket router
     app.include_router(websocket_router)
+
+    # Register Metrics Endpoint
+    app.add_route("/metrics", metrics_endpoint)
     
     # Register exception handlers
     register_exception_handlers(app)

@@ -383,16 +383,17 @@ Valid transitions are enforced by `SessionStatus.can_transition_to()`.
 
 ## 🚧 Remaining Work
 
-### Phase 2.3: Dashboard (Complete)
-- [x] SessionMonitor component ("Glass Box" view)
-- [x] TaskGraph visualization (Recursive Tree)
-- [x] AgentStatus panel (Load & Tier metrics)
-- [x] Real-time WebSocket integration
+### Phase 2.4: Production Hardening (Complete)
+- [x] Kubernetes manifests & Helm charts
+- [x] CI/CD pipelines (GitHub Actions)
+- [x] Prometheus/Grafana dashboards
+- [x] Structured JSON logging (structlog)
+- [x] Metrics Middleware integration
 
-### Phase 2.4: Production Hardening (In Progress)
-- [ ] Kubernetes manifests & Helm charts
-- [ ] CI/CD pipelines (GitHub Actions)
-- [ ] Prometheus/Grafana dashboards
+### Future Roadmap (Phase 3.0)
+- [ ] Agent Marketplace (External Agent Integration)
+- [ ] LLM Fine-tuning Pipeline
+- [ ] Multi-Tenant Isolation
 
 ---
 
