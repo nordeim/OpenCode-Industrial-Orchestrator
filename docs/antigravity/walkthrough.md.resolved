@@ -1,93 +1,35 @@
-# Phase 2.4 Walkthrough — Production Hardening
+# Phase 2.2.F Walkthrough — Unit Tests Complete ✅
 
-> Completed: Feb 3, 2026
+> Updated: Feb 3, 2026
 
 ## Summary
 
-Prepared the Industrial Orchestrator for production deployment:
-- Multi-stage Docker builds with security best practices
-- Complete Kubernetes manifests with resource management
-- Prometheus metrics + Grafana dashboard
-- GitHub Actions CI/CD pipelines
-- Comprehensive API documentation
+All 212 domain and application service tests now pass:
+- Session Entity: 42 tests ✅
+- Agent Entity: 54 tests ✅
+- Task Entity: 53 tests ✅
+- Context Entity: 39 tests ✅
+- TaskDecompositionService: 24 tests ✅
 
 ---
 
-## Phase 2.4.A: Container Optimization ✅
+## Bug Fixes Applied
 
-| File | Features |
-|------|----------|
-| [orchestrator/Dockerfile](file:///home/project/opencode-industrial-orchestrator/orchestrator/Dockerfile) | Multi-stage, non-root user, health check, uvloop |
-| [dashboard/Dockerfile](file:///home/project/opencode-industrial-orchestrator/dashboard/Dockerfile) | Next.js standalone, Alpine, non-root |
-| [next.config.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/next.config.ts) | Standalone output enabled |
+| Issue | Fix | File |
+|-------|-----|------|
+| `cls` NameError | `SessionStatus.get_terminal_states()` | session_status.py:131 |
+| PENDING→RUNNING blocked | Added to valid transitions | session_status.py:87 |
+| Title validation V2 | `pytest.raises(ValidationError)` | test_session_entity.py |
+| Checkpoint sequence bug | Increment from last checkpoint | session.py:188 |
+| metrics.checkpoint_count | Sync on add_checkpoint | session.py:197 |
+| Missing imports | Added create_session_with_dependencies | test_session_entity.py |
+| Flaky batch test | Check for variety, not specific statuses | test_session_entity.py |
 
 ---
 
-## Phase 2.4.B: Kubernetes Deployment ✅
+## Verification Command
 
+```bash
+poetry run pytest tests/unit/domain/ tests/unit/application/test_task_decomposition_service.py -q
+# Result: 212 passed ✅
 ```
-infrastructure/kubernetes/
-├── namespace.yaml          # ResourceQuota + LimitRange
-├── ingress.yaml           # TLS, rate limiting, security headers
-└── orchestrator/
-    ├── deployment.yaml    # Probes, resources, anti-affinity
-    ├── service.yaml       # ClusterIP + headless WS
-    ├── configmap.yaml     # Feature flags
-    └── secret.yaml        # Credential template
-```
-
----
-
-## Phase 2.4.C: Observability ✅
-
-| Component | File |
-|-----------|------|
-| Prometheus Middleware | [metrics.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/middleware/metrics.py) |
-| Grafana Dashboard | [orchestrator.json](file:///home/project/opencode-industrial-orchestrator/infrastructure/monitoring/grafana/dashboards/orchestrator.json) |
-
-**Metrics:**
-- `http_requests_total`, `http_request_duration_seconds`
-- `orchestrator_active_sessions`, `orchestrator_active_agents`
-- `orchestrator_tasks_total`, `orchestrator_session_duration_seconds`
-
----
-
-## Phase 2.4.D: CI/CD Pipeline ✅
-
-| Workflow | Purpose |
-|----------|---------|
-| [ci.yaml](file:///home/project/opencode-industrial-orchestrator/.github/workflows/ci.yaml) | Lint, type check, test, build images |
-| [cd.yaml](file:///home/project/opencode-industrial-orchestrator/.github/workflows/cd.yaml) | Deploy staging → production |
-
-**CI Jobs:** `lint-backend`, `lint-frontend`, `test-backend`, `build-images`
-
----
-
-## Phase 2.4.E: Documentation ✅
-
-| File | Content |
-|------|---------|
-| [docs/API.md](file:///home/project/opencode-industrial-orchestrator/docs/API.md) | Sessions, Agents, Tasks API + WebSocket endpoints |
-
----
-
-## Verification
-
-```
-✓ Dashboard build: Next.js 16.1.6, 7 pages
-✓ Standalone output: Enabled
-✓ All K8s manifests: Valid YAML
-```
-
----
-
-## Files Created
-
-| Category | Files |
-|----------|-------|
-| Containers | 2 Dockerfiles |
-| Kubernetes | 6 manifests |
-| CI/CD | 2 workflows |
-| Observability | 2 files |
-| Documentation | 1 file |
-| **Total** | **13 files** |

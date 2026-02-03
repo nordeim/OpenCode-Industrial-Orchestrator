@@ -1,0 +1,22 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md
+
+## Phase 2.2: Multi-Agent Intelligence Layer ✅ COMPLETE
+## Phase 2.3: Dashboard & Visualization ✅ COMPLETE
+## Phase 2.4: Production Hardening ✅ COMPLETE
+
+---
+
+## Phase 2.2.F: Tests (Postponed → Now)
+
+### [/] Unit Tests - Domain Entities
+- [ ] `test_agent_entity.py` — Capability, tier, load
+- [ ] `test_task_entity.py` — Dependencies, cycles, hierarchy
+- [ ] `test_context_entity.py` — Merge, conflicts
+
+### [ ] Unit Tests - Application Services
+- [ ] `test_session_service.py`
+- [ ] `test_agent_management_service.py`
+
+### [ ] Integration Tests - API
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`

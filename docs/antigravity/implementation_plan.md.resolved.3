@@ -1,0 +1,158 @@
+# Implementation Plan: Application Services Tests
+
+## Overview
+Phase 2.2.F application services tests. Using mocks for infrastructure dependencies (repositories, locks, external clients) to isolate business logic testing.
+
+---
+
+## Services to Test
+
+| Service | Lines | Key Methods | Dependencies |
+|---------|-------|-------------|--------------|
+| [SessionService](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/application/services/session_service.py#31-638) | 638 | create, start, complete, fail, retry | SessionRepository, DistributedLock, OpenCodeClient |
+| [AgentManagementService](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/application/services/agent_management_service.py#81-622) | 622 | register, deregister, route_task, rebalance | AgentRepository, DistributedLock |
+| [ContextService](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/application/services/context_service.py#27-447) | 447 | create, get, update, share, merge | ContextRepository |
+| [TaskDecompositionService](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/application/services/task_decomposition_service.py#217-684) | 684 | analyze_and_decompose | None (uses internal templates) |
+
+---
+
+## Test Structure
+
+```
+tests/unit/application/
+├── __init__.py
+├── conftest.py                      # Shared fixtures and mock factories
+├── mocks/
+│   ├── __init__.py
+│   ├── mock_repositories.py         # Mock repository implementations
+│   └── mock_ports.py                # Mock lock and client ports
+├── test_session_service.py          # Priority 1
+├── test_agent_management_service.py # Priority 2
+├── test_context_service.py          # Priority 3
+└── test_task_decomposition_service.py # Priority 4
+```
+
+---
+
+## Phase 1: Infrastructure Mocks
+
+### [NEW] [mock_repositories.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_repositories.py)
+
+In-memory implementations of repository ports:
+- `MockSessionRepository` — In-memory session storage
+- `MockAgentRepository` — In-memory agent registry
+- `MockContextRepository` — In-memory context storage
+
+### [NEW] [mock_ports.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_ports.py)
+
+Mock service ports:
+- `MockDistributedLock` — Always-succeed lock (no contention)
+- `MockOpenCodeClient` — Configurable execution results
+
+---
+
+## Phase 2: Service Test Files
+
+### [NEW] [test_session_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_session_service.py)
+
+**Test Classes:**
+1. `TestSessionCreation` — create_session validation, defaults, edge cases
+2. `TestSessionLifecycle` — start, complete, fail state transitions
+3. `TestSessionRetry` — retry logic, recoverability checks
+4. `TestCheckpointing` — add_checkpoint, checkpoint limits
+5. `TestSessionQueries` — find_sessions, monitor_sessions
+6. `TestOpenCodeExecution` — execute_with_opencode integration
+
+**Key Tests:**
+- Valid session creation with all fields
+- Invalid title rejection
+- State transition enforcement (PENDING → RUNNING → COMPLETED)
+- Invalid transition rejection (PENDING → COMPLETED)
+- Failed session retry logic
+- Checkpoint rotation when limit reached
+- OpenCode execution success/failure handling
+
+---
+
+### [NEW] [test_agent_management_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_agent_management_service.py)
+
+**Test Classes:**
+1. `TestAgentRegistration` — register_agent validation, deregistration
+2. `TestTaskRouting` — route_task capability matching, scoring
+3. `TestPerformanceTracking` — update_agent_performance metrics
+4. `TestWorkloadRebalancing` — rebalance_workload algorithm
+5. [TestAgentHealth](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py#422-460) — heartbeat processing, stale detection
+
+**Key Tests:**
+- Agent registration with capabilities
+- Invalid name pattern rejection
+- Route task to best capability match
+- Performance-weighted routing
+- Load-aware routing (avoid overloaded agents)
+- Performance metric updates after task completion
+- Workload rebalancing when imbalanced
+
+---
+
+### [NEW] [test_context_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_context_service.py)
+
+**Test Classes:**
+1. `TestContextCreation` — create_context scope validation
+2. `TestContextAccessControl` — scope-based access rules
+3. `TestContextSharing` — share_context between sessions
+4. `TestContextMerging` — merge_contexts with strategies
+5. `TestGlobalPromotion` — promote_to_global workflow
+
+**Key Tests:**
+- Create context with SESSION scope
+- Require session_id for SESSION scope
+- Require agent_id for AGENT scope
+- Context sharing between sessions
+- Merge with LAST_WRITE_WINS strategy
+- Promote session context to global
+
+---
+
+### [NEW] [test_task_decomposition_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_task_decomposition_service.py)
+
+**Test Classes:**
+1. `TestComplexityAnalysis` — analyze_requirements_text heuristics
+2. `TestTemplateMatching` — template pattern matching
+3. `TestDecomposition` — analyze_and_decompose with strategies
+4. `TestDependencyGeneration` — temporal strategy dependencies
+5. `TestValidation` — depth limits, cycle prevention
+
+**Key Tests:**
+- Complexity analysis from keywords
+- Microservice template matching
+- CRUD template decomposition
+- Security task phased breakdown
+- Depth limit enforcement
+- Dependency generation for temporal strategy
+
+---
+
+## Verification Plan
+
+```bash
+# Run all application tests
+poetry run pytest tests/unit/application/ -v
+
+# Run with coverage
+poetry run pytest tests/unit/application/ --cov=src/industrial_orchestrator/application/services
+```
+
+**Expected:** 80+ tests, 100% pass rate
+
+---
+
+## Execution Order
+
+1. Create directory structure and [__init__.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/__init__.py) files
+2. Create mock repositories and ports
+3. Create [conftest.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/conftest.py) with shared fixtures
+4. Implement `test_session_service.py` (highest priority)
+5. Implement `test_agent_management_service.py`
+6. Implement `test_context_service.py`
+7. Implement `test_task_decomposition_service.py`
+8. Run full verification

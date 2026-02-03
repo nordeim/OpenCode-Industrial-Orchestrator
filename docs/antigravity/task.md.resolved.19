@@ -1,0 +1,57 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md Phase 2.2.F Tests
+
+## Progress
+
+### [x] Unit Tests - Domain Entities ✅ COMPLETE
+- [x] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Created with variants, pool generator, debugger trait
+- [x] [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py) — Capabilities, tiers, load, health (54 tests)
+- [x] [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Created with chains/hierarchy
+- [x] [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py) — Dependencies, cycles, decomposition (53 tests)
+- [x] [context_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/context_factory.py) — Created with scope variants (fixed mutable dict)
+- [x] [test_context_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py) — Merge, diff, clone, serialization (39 tests)
+
+### [x] Pydantic v2 Compatibility Fixes ✅ COMPLETE
+- [x] Fixed `class Config` → `model_config = {}` in 5 entities
+- [x] Renamed `model_config` field to `model_identifier` in Session & Agent
+- [x] Added `skip_on_failure=True` to root_validator in AgentEntity
+- [x] Fixed `model_identifier` regex to allow dots in model names
+
+### [x] Test Isolation Fixes ✅ COMPLETE
+- [x] Added `debugger` trait to AgentEntityFactory
+- [x] Updated [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#204-239) to handle DEBUGGER type
+- [x] Fixed cycle detection test (entity-level cannot detect cross-entity cycles)
+- [x] Fixed mutable dict bug in context factory's [nested](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py#86-94) trait
+
+### [x] Final Verification ✅ 100% PASS RATE
+```
+146 passed, 151 warnings
+```
+
+### [/] Unit Tests - Application Services (IN PROGRESS)
+- [x] Created test infrastructure:
+  - [x] [tests/unit/application/__init__.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/__init__.py)
+  - [x] [tests/unit/application/mocks/__init__.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/__init__.py)  
+  - [x] [tests/unit/application/mocks/mock_repositories.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_repositories.py)
+  - [x] [tests/unit/application/mocks/mock_ports.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_ports.py)
+  - [x] [tests/unit/application/conftest.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/conftest.py)
+- [x] [test_task_decomposition_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_task_decomposition_service.py) — **24 tests PASSING** ✅
+- [/] [test_session_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_session_service.py) — Created (mocking issues with distributed_lock)
+- [/] [test_agent_management_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_agent_management_service.py) — Created (mocking issues)  
+- [/] [test_context_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_context_service.py) — Created (mocking issues)
+
+### Infrastructure Fixes Applied
+- [x] Fixed `enum.IntegerEnum` → `enum.IntEnum` in database models
+- [x] Fixed reserved [metadata](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/infrastructure/locking/distributed_lock.py#349-375) attribute → `meta_data` in SQLAlchemy models
+
+### [ ] Integration Tests - API  
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`
+
+## Notes
+
+The application services tests require complex mocking of:
+1. Distributed lock context manager with async patterns
+2. Repository return values that match domain entity structures
+3. Event publishing handlers
+
+TaskDecompositionService tests pass fully as it has fewer infrastructure dependencies.

@@ -1,0 +1,22 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md Phase 2.2.F Tests
+
+## Progress
+
+### [/] Unit Tests - Domain Entities
+- [x] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Created with variants
+- [x] [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py) — Capabilities, tiers, load, health
+- [x] [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Created with chains/hierarchy
+- [x] [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py) — Dependencies, cycles, decomposition
+- [/] `context_factory.py` — In progress
+- [ ] `test_context_entity.py` — Merge, conflicts
+
+### [ ] Unit Tests - Application Services
+- [ ] `test_session_service.py`
+- [ ] `test_agent_management_service.py`
+
+### [ ] Integration Tests - API  
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`
+
+### [ ] Verification
+- [ ] Run pytest on new tests

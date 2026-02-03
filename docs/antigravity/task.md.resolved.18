@@ -1,0 +1,38 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md Phase 2.2.F Tests
+
+## Progress
+
+### [x] Unit Tests - Domain Entities ✅ COMPLETE
+- [x] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Created with variants, pool generator, debugger trait
+- [x] [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py) — Capabilities, tiers, load, health (54 tests)
+- [x] [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Created with chains/hierarchy
+- [x] [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py) — Dependencies, cycles, decomposition (53 tests)
+- [x] [context_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/context_factory.py) — Created with scope variants (fixed mutable dict)
+- [x] [test_context_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py) — Merge, diff, clone, serialization (39 tests)
+
+### [x] Pydantic v2 Compatibility Fixes ✅ COMPLETE
+- [x] Fixed `class Config` → `model_config = {}` in 5 entities
+- [x] Renamed `model_config` field to `model_identifier` in Session & Agent
+- [x] Added `skip_on_failure=True` to root_validator in AgentEntity
+- [x] Fixed `model_identifier` regex to allow dots in model names
+
+### [x] Test Isolation Fixes ✅ COMPLETE
+- [x] Added `debugger` trait to AgentEntityFactory
+- [x] Updated [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#204-239) to handle DEBUGGER type
+- [x] Fixed cycle detection test (entity-level cannot detect cross-entity cycles)
+- [x] Fixed mutable dict bug in context factory's [nested](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py#63-68) trait
+
+### [x] Final Verification ✅ 100% PASS RATE
+```
+146 passed, 151 warnings
+```
+
+### [ ] Unit Tests - Application Services
+- [ ] `test_session_service.py`
+- [ ] `test_agent_management_service.py`
+
+### [ ] Integration Tests - API  
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`
+
+

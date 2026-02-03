@@ -1,0 +1,34 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md Phase 2.2.F Tests
+
+## Progress
+
+### [x] Unit Tests - Domain Entities
+- [x] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Created with variants, pool generator
+- [x] [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py) — Capabilities, tiers, load, health
+- [x] [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Created with chains/hierarchy
+- [x] [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py) — Dependencies, cycles, decomposition
+- [x] [context_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/context_factory.py) — Created with scope variants
+- [x] [test_context_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py) — Merge, diff, clone, serialization
+
+### [x] Pydantic v2 Compatibility Fixes
+- [x] Fixed `class Config` → `model_config = {}` in 5 entities
+- [x] Renamed `model_config` field to `model_identifier` in Session & Agent
+- [x] Added `skip_on_failure=True` to root_validator in AgentEntity
+- [x] Fixed `model_identifier` regex to allow dots in model names
+
+### [x] Verification Results
+- **142 tests pass** (97% pass rate)
+- 4 minor failures: test assertions need entity behavior alignment
+  - [test_all_keys_includes_nested](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py#151-160) — ContextEntity key enumeration
+  - [test_roundtrip](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py#346-353) — Context serialization edge case
+  - [test_create_agent_pool](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py#484-494) — Random type distribution
+  - [test_direct_cycle_detected](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py#219-229) — TaskEntity cycle validation
+
+### [ ] Unit Tests - Application Services
+- [ ] `test_session_service.py`
+- [ ] `test_agent_management_service.py`
+
+### [ ] Integration Tests - API  
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`
+

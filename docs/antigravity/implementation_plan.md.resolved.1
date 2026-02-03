@@ -1,0 +1,66 @@
+# Implementation Plan: Fix Remaining Test Failures
+
+## Summary
+Fixing 2 remaining test failures from Phase 2.2.F domain entity tests.
+
+---
+
+## Failure 1: [test_create_agent_pool](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py#484-494)
+
+### Root Cause
+The [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#195-228) function creates agents with random types, but only ARCHITECT and REVIEWER have explicit trait handling. When DEBUGGER is selected, it falls through to [AgentEntityFactory(agent_type=selected_type)](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#75-193) which uses the default `primary_capabilities` (designed for IMPLEMENTER).
+
+**Error**: `AgentCapability.SYSTEM_DESIGN` not allowed for `AgentType.DEBUGGER`
+
+### Fix Strategy
+Add a `debugger` trait to [AgentEntityFactory](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#75-193) and update [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#195-228) to handle DEBUGGER type explicitly.
+
+#### [MODIFY] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py)
+
+1. Add `debugger` trait with appropriate capabilities:
+```python
+debugger = factory.Trait(
+    agent_type=AgentType.DEBUGGER,
+    primary_capabilities=[
+        AgentCapability.DEBUGGING,
+        AgentCapability.ROOT_CAUSE_ANALYSIS,
+    ],
+)
+```
+
+2. Update [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#195-228) to handle DEBUGGER:
+```python
+if selected_type == AgentType.ARCHITECT:
+    agents.append(AgentEntityFactory(architect=True))
+elif selected_type == AgentType.REVIEWER:
+    agents.append(AgentEntityFactory(reviewer=True))
+elif selected_type == AgentType.DEBUGGER:
+    agents.append(AgentEntityFactory(debugger=True))
+else:
+    agents.append(AgentEntityFactory(agent_type=selected_type))
+```
+
+---
+
+## Failure 2: [test_direct_cycle_detected](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py#219-229)
+
+### Root Cause
+The test creates a cycle: A→B and B→A. It then calls `task_a.validate_dependencies()` expecting `TaskDependencyCycleError`. However, [validate_dependencies()](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/domain/entities/task.py#477-492) only checks the dependencies of the single task, not the entire graph. Each task individually has no cycle - the cycle only exists when considering both tasks together.
+
+### Analysis Options
+
+**Option A: Fix the Test** — Change test to use a method that has graph context (e.g., call [validate_dependencies()](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/domain/entities/task.py#477-492) differently or use a service-level validator).
+
+**Option B: Fix the Entity** — Make [validate_dependencies()](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/domain/entities/task.py#477-492) check for bidirectional cycles by also checking if any of its dependencies point back to it.
+
+### Recommended Fix: Option A (Fix the Test)
+The domain entity [validate_dependencies()](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/domain/entities/task.py#477-492) cannot detect cross-entity cycles without external context. The test expectation is incorrect. We should either:
+- Change the test to expect the check to pass (entity level can't detect cross-entity cycles)
+- Or validate that cycles are detected at add_dependency time for simple A→B→A cases
+
+Looking at the actual behavior: [add_dependency()](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/routers/tasks.py#259-275) should ideally detect and reject a cycle creation. Let me check the entity's [add_dependency](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/routers/tasks.py#259-275) method.
+
+---
+
+## Verification Plan
+Run `poetry run pytest tests/unit/domain/ -v` to confirm all 146 tests pass (100%).

@@ -1,0 +1,46 @@
+# Task: Execute MASTER_EXECUTION_PLAN.md Phase 2.2.F Tests
+
+## Progress
+
+### [x] Unit Tests - Domain Entities ✅ MOSTLY COMPLETE
+- [x] [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Created with variants, pool generator, debugger trait
+- [x] [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_agent_entity.py) — Capabilities, tiers, load, health (54 tests passing)
+- [x] [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Created with chains/hierarchy
+- [x] [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_task_entity.py) — Dependencies, cycles, decomposition (53 tests passing)
+- [x] [context_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/context_factory.py) — Created with scope variants (fixed mutable dict)
+- [x] [test_context_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_context_entity.py) — Merge, diff, clone, serialization (39 tests passing)
+- [/] [test_session_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/test_session_entity.py) — 192 passed overall, 23 have factory fixture issues
+
+### [x] Pydantic v2 Compatibility Fixes ✅ COMPLETE
+- [x] Fixed `class Config` → `model_config = {}` in 5 entities
+- [x] Renamed `model_config` field to `model_identifier` in Session & Agent
+- [x] Added `skip_on_failure=True` to root_validator in AgentEntity
+- [x] Fixed `model_identifier` regex to allow dots in model names (e.g., claude-4.5)
+
+### [x] Test Isolation Fixes ✅ COMPLETE
+- [x] Added `debugger` trait to AgentEntityFactory
+- [x] Updated [create_agent_pool()](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py#204-239) to handle DEBUGGER type
+- [x] Fixed factory.Faker misuse in post_generation hooks
+- [x] Fixed factory import path in test_session_entity.py
+
+### [x] Infrastructure Fixes Applied
+- [x] Fixed `enum.IntegerEnum` → `enum.IntEnum` in database models
+- [x] Fixed reserved [metadata](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/infrastructure/locking/distributed_lock.py#349-375) attribute → `meta_data` in SQLAlchemy models
+- [x] Fixed `model_identifier` regex pattern to allow dots
+- [x] Added `random` import for session_factory batch creation
+
+### [x] Application Services Tests ✅ TaskDecomposition Complete
+- [x] [test_task_decomposition_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_task_decomposition_service.py) — **24 tests PASSING** ✅
+- [/] [test_session_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_session_service.py) — Created (distributed_lock mocking issues)
+- [/] [test_agent_management_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_agent_management_service.py) — Created (mocking issues)
+- [/] [test_context_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_context_service.py) — Created (mocking issues)
+
+## Test Results Summary
+```
+Domain + TaskDecomposition: 192 passed, 23 failed
+TaskDecompositionService:   24/24 PASSED ✅
+```
+
+### [ ] Integration Tests - API (Next Phase)
+- [ ] `test_sessions_api.py`
+- [ ] `test_agents_api.py`

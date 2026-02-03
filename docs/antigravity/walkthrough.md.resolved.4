@@ -1,0 +1,72 @@
+# Phase 2.2.F Walkthrough — Unit Tests Execution
+
+> Updated: Feb 3, 2026
+
+## Summary
+
+Executed comprehensive unit tests for Phase 2.2 Multi-Agent Intelligence Layer:
+- **Domain Entity Tests**: 146 tests passing ✅
+- **Application Service Tests**: TaskDecompositionService 24 tests passing ✅
+- **Infrastructure Bug Fixes**: SQLAlchemy model corrections
+
+---
+
+## Domain Entity Tests ✅ COMPLETE
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| [test_agent_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/entities/test_agent_entity.py) | 54 | ✅ Pass |
+| [test_task_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/entities/test_task_entity.py) | 53 | ✅ Pass |
+| [test_context_entity.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/entities/test_context_entity.py) | 39 | ✅ Pass |
+
+**Test Factories Created:**
+- [agent_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/agent_factory.py) — Pool generator, debugger trait
+- [task_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/task_factory.py) — Chain/hierarchy builders
+- [context_factory.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/domain/factories/context_factory.py) — Scope variants
+
+---
+
+## Application Service Tests
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| [test_task_decomposition_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_task_decomposition_service.py) | 24 | ✅ Pass |
+| [test_session_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_session_service.py) | — | 🔧 Mock issues |
+| [test_agent_management_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_agent_management_service.py) | — | 🔧 Mock issues |
+| [test_context_service.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/test_context_service.py) | — | 🔧 Mock issues |
+
+**Test Infrastructure Created:**
+- [mock_repositories.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_repositories.py) — In-memory repository mocks
+- [mock_ports.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/unit/application/mocks/mock_ports.py) — DistributedLock, OpenCodeClient mocks
+- [conftest.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/tests/conftest.py) — Shared fixtures
+
+---
+
+## Infrastructure Bug Fixes
+
+| Issue | Fix | File |
+|-------|-----|------|
+| `enum.IntegerEnum` not in Python 3.12 | Changed to `enum.IntEnum` | [models.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/infrastructure/database/models.py) |
+| SQLAlchemy reserved [metadata](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/infrastructure/locking/distributed_lock.py#349-375) attribute | Renamed to `meta_data` | [models.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/infrastructure/database/models.py) |
+
+---
+
+## Verification
+
+```bash
+# Domain tests
+pytest tests/unit/domain/ -v
+# 146 passed ✅
+
+# TaskDecompositionService
+pytest tests/unit/application/test_task_decomposition_service.py -v  
+# 24 passed ✅
+```
+
+---
+
+## Next Steps
+
+1. Refactor remaining service tests for simpler mock patterns
+2. Add integration tests for API endpoints
+3. Address Pydantic V2 deprecation warnings

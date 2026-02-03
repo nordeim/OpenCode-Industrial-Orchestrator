@@ -186,16 +186,22 @@ class SessionEntity(BaseModel):
         """Add execution checkpoint for recovery"""
         # Sequence continues from last checkpoint (handles rotation correctly)
         next_sequence = (self.checkpoints[-1]['sequence'] + 1) if self.checkpoints else 1
+        now = datetime.now(timezone.utc)
         checkpoint = {
-            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'timestamp': now.isoformat(),
             'data': data,
             'sequence': next_sequence
         }
         self.checkpoints.append(checkpoint)
         
+        # Update metrics
+        self.metrics.checkpoint_count = len(self.checkpoints)
+        self.metrics.last_checkpoint_at = now
+        
         # Limit checkpoint history
         if len(self.checkpoints) > 100:
             self.checkpoints = self.checkpoints[-100:]
+            self.metrics.checkpoint_count = len(self.checkpoints)
     
     def get_latest_checkpoint(self) -> Optional[Dict[str, Any]]:
         """Retrieve most recent checkpoint for recovery"""
