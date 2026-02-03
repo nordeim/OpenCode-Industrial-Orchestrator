@@ -18,6 +18,7 @@ from .routers import (
     tasks_router,
     contexts_router,
 )
+from .websocket import websocket_router, manager as ws_manager
 from .dependencies import get_settings
 
 # Configure logging
@@ -55,6 +56,10 @@ async def lifespan(app: FastAPI):
     # await init_db_pool()
     # await init_redis_pool()
     
+    # Start WebSocket heartbeat
+    await ws_manager.start_heartbeat()
+    logger.info("✅ WebSocket heartbeat started")
+    
     logger.info("✅ All systems initialized")
     logger.info("-" * 60)
     
@@ -63,6 +68,10 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("-" * 60)
     logger.info("🛑 Shutting down Industrial Orchestrator")
+    
+    # Stop WebSocket heartbeat
+    await ws_manager.stop_heartbeat()
+    logger.info("✅ WebSocket heartbeat stopped")
     
     # Close connections (placeholder)
     # await close_db_pool()
@@ -120,6 +129,10 @@ def create_app() -> FastAPI:
                 "name": "Health",
                 "description": "System health and monitoring endpoints",
             },
+            {
+                "name": "WebSocket",
+                "description": "Real-time event subscriptions via WebSocket",
+            },
         ],
     )
     
@@ -137,6 +150,9 @@ def create_app() -> FastAPI:
     app.include_router(agents_router, prefix="/api/v1")
     app.include_router(tasks_router, prefix="/api/v1")
     app.include_router(contexts_router, prefix="/api/v1")
+    
+    # Register WebSocket router
+    app.include_router(websocket_router)
     
     # Register exception handlers
     register_exception_handlers(app)

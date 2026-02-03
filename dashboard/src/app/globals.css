@@ -1,0 +1,355 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   INDUSTRIAL ORCHESTRATOR — BRUTALIST DESIGN SYSTEM
+   A CSS-first Tailwind v4.0 configuration for industrial-grade UI
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   CSS VARIABLES (Root Tokens)
+   ---------------------------------------------------------------------------- */
+
+:root {
+  /* Industrial Base Colors */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+  --ring: #3b82f6;
+
+  /* Status Colors — High Contrast Industrial */
+  --status-running: #22c55e;
+  --status-pending: #eab308;
+  --status-failed: #ef4444;
+  --status-completed: #3b82f6;
+  --status-paused: #f97316;
+  --status-cancelled: #6b7280;
+
+  /* Accent Colors */
+  --accent: #3b82f6;
+  --accent-foreground: #fafafa;
+
+  /* Card/Surface */
+  --card: #0f0f0f;
+  --card-foreground: #fafafa;
+
+  /* Destructive */
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+}
+
+/* Light mode override (if needed) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #fafafa;
+    --foreground: #0a0a0a;
+    --muted: #f5f5f5;
+    --muted-foreground: #525252;
+    --border: #e5e5e5;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+  }
+}
+
+/* Force dark mode for industrial aesthetic */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+  --card: #0f0f0f;
+  --card-foreground: #fafafa;
+}
+
+/* ----------------------------------------------------------------------------
+   THEME TOKENS (Tailwind v4.0 @theme directive)
+   ---------------------------------------------------------------------------- */
+
+@theme {
+  /* Typography — Mono-first for Industrial */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --font-display: "Inter", system-ui, sans-serif;
+
+  /* Spacing Additions */
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+  --spacing-128: 32rem;
+
+  /* Custom Breakpoints */
+  --breakpoint-3xl: 1920px;
+
+  /* Industrial Shadows — Brutal, not soft */
+  --shadow-brutal: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-brutal-sm: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-brutal-lg: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-brutal-inset: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+
+  /* Z-Index Scale — Industrial Standard */
+  --z-base: 0;
+  --z-dropdown: 200;
+  --z-sticky: 300;
+  --z-modal: 400;
+  --z-popover: 500;
+  --z-tooltip: 600;
+  --z-max: 9999;
+
+  /* Animation Tokens */
+  --ease-industrial: cubic-bezier(0.2, 0, 0.2, 1);
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  /* Border Widths — Bold Industrial */
+  --border-width-brutal: 2px;
+  --border-width-thick: 3px;
+
+  /* Colors from CSS variables */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Status Colors */
+  --color-status-running: var(--status-running);
+  --color-status-pending: var(--status-pending);
+  --color-status-failed: var(--status-failed);
+  --color-status-completed: var(--status-completed);
+  --color-status-paused: var(--status-paused);
+  --color-status-cancelled: var(--status-cancelled);
+}
+
+/* ----------------------------------------------------------------------------
+   GLOBAL RESETS — BRUTALIST OVERRIDES
+   ---------------------------------------------------------------------------- */
+
+/* CRITICAL: Remove all rounded corners for brutalist aesthetic */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+/* Base Styles */
+html {
+  font-family: var(--font-mono);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Industrial Selection */
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Industrial Focus Styles */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Industrial Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ----------------------------------------------------------------------------
+   CUSTOM UTILITIES (Tailwind v4.0 @utility directive)
+   ---------------------------------------------------------------------------- */
+
+/* Industrial Card */
+@utility industrial-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  padding: 1rem;
+}
+
+/* Industrial Panel */
+@utility industrial-panel {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+}
+
+/* Brutal Shadow */
+@utility brutal-shadow {
+  box-shadow: var(--shadow-brutal);
+}
+
+@utility brutal-shadow-sm {
+  box-shadow: var(--shadow-brutal-sm);
+}
+
+@utility brutal-shadow-lg {
+  box-shadow: var(--shadow-brutal-lg);
+}
+
+/* Status Indicators */
+@utility status-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+}
+
+@utility status-running {
+  background: var(--status-running);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility status-pending {
+  background: var(--status-pending);
+}
+
+@utility status-failed {
+  background: var(--status-failed);
+}
+
+@utility status-completed {
+  background: var(--status-completed);
+}
+
+/* Industrial Text Styles */
+@utility text-industrial {
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
+@utility text-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+/* Industrial Button Base */
+@utility btn-industrial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-industrial);
+}
+
+/* Button hover state (standard CSS, not @utility) */
+.btn-industrial:hover {
+  background: var(--muted);
+  box-shadow: var(--shadow-brutal-sm);
+}
+
+/* Mono Numbers */
+@utility tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------------
+   ANIMATIONS
+   ---------------------------------------------------------------------------- */
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes blink {
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Animation utilities */
+@utility animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@utility animate-slide-in-right {
+  animation: slide-in-right 0.3s var(--ease-industrial);
+}
+
+@utility animate-slide-in-up {
+  animation: slide-in-up 0.2s var(--ease-industrial);
+}
