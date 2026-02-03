@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, List
 import factory
 from factory import Faker, LazyFunction, LazyAttribute, SubFactory
 import faker
+import random
 
 from src.industrial_orchestrator.domain.entities.session import (
     SessionEntity, SessionType, SessionPriority
@@ -226,11 +227,13 @@ class SessionEntityFactory(factory.Factory):
     @factory.post_generation
     def add_checkpoints(self, create, extracted, **kwargs):
         """Add realistic checkpoints based on session state"""
+        from faker import Faker
+        fake = Faker()
         if extracted is not None:
             self.checkpoints = extracted
         elif self.status.is_active():
             # Add checkpoints for active sessions
-            checkpoint_count = factory.Faker('random_int', min=1, max=5).generate()
+            checkpoint_count = fake.random_int(min=1, max=5)
             self.checkpoints = [
                 {
                     'timestamp': (datetime.now(timezone.utc) - timedelta(minutes=i)).isoformat(),
@@ -282,7 +285,7 @@ def create_session_batch(
     sessions = []
     for i in range(count):
         # Determine status based on distribution
-        rand = factory.Faker('pyfloat', min_value=0, max_value=1).generate()
+        rand = random.random()  # Use standard random for status distribution
         cumulative = 0
         selected_status = SessionStatus.PENDING
         
