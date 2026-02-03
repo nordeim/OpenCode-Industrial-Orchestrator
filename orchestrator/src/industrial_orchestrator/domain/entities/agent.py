@@ -416,7 +416,7 @@ class AgentEntity(BaseModel):
         
         return v
     
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_agent_configuration(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive agent configuration validation"""
         agent_type = values.get('agent_type')
