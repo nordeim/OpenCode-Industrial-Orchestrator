@@ -68,17 +68,19 @@ class ContextEntityFactory(factory.Factory):
             data={"temp_key": "temp_value"},
         )
 
-        # With rich nested data
+        # With rich nested data (use LazyFunction to prevent mutation)
         nested = factory.Trait(
-            data={
-                "level1": {
-                    "level2": {
-                        "level3": {"deep_value": "found"},
+            data=LazyFunction(
+                lambda: {
+                    "level1": {
+                        "level2": {
+                            "level3": {"deep_value": "found"},
+                        },
+                        "sibling": "value",
                     },
-                    "sibling": "value",
-                },
-                "top": "level",
-            },
+                    "top": "level",
+                }
+            ),
         )
 
         # With history

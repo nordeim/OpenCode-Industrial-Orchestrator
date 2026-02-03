@@ -191,6 +191,15 @@ class AgentEntityFactory(factory.Factory):
             ],
         )
 
+        # Debugger type
+        debugger = factory.Trait(
+            agent_type=AgentType.DEBUGGER,
+            primary_capabilities=[
+                AgentCapability.DEBUGGING,
+                AgentCapability.ROOT_CAUSE_ANALYSIS,
+            ],
+        )
+
 
 def create_agent_pool(
     count: int = 5,
@@ -221,6 +230,8 @@ def create_agent_pool(
             agents.append(AgentEntityFactory(architect=True))
         elif selected_type == AgentType.REVIEWER:
             agents.append(AgentEntityFactory(reviewer=True))
+        elif selected_type == AgentType.DEBUGGER:
+            agents.append(AgentEntityFactory(debugger=True))
         else:
             agents.append(AgentEntityFactory(agent_type=selected_type))
 
