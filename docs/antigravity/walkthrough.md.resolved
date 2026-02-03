@@ -1,129 +1,93 @@
-# Phase 2.3 Walkthrough — Dashboard & Visualization
+# Phase 2.4 Walkthrough — Production Hardening
 
 > Completed: Feb 3, 2026
 
 ## Summary
 
-Implemented the **Glass Box** monitoring interface for the Industrial Orchestrator with:
-- Backend WebSocket support for real-time updates
-- Next.js 16 frontend with Tailwind v4 Brutalist aesthetic
-- 4 dashboard pages with industrial styling
+Prepared the Industrial Orchestrator for production deployment:
+- Multi-stage Docker builds with security best practices
+- Complete Kubernetes manifests with resource management
+- Prometheus metrics + Grafana dashboard
+- GitHub Actions CI/CD pipelines
+- Comprehensive API documentation
 
 ---
 
-## Phase 2.3.A: Backend WebSocket Support
+## Phase 2.4.A: Container Optimization ✅
 
-### Files Created
+| File | Features |
+|------|----------|
+| [orchestrator/Dockerfile](file:///home/project/opencode-industrial-orchestrator/orchestrator/Dockerfile) | Multi-stage, non-root user, health check, uvloop |
+| [dashboard/Dockerfile](file:///home/project/opencode-industrial-orchestrator/dashboard/Dockerfile) | Next.js standalone, Alpine, non-root |
+| [next.config.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/next.config.ts) | Standalone output enabled |
 
-| File | Purpose |
+---
+
+## Phase 2.4.B: Kubernetes Deployment ✅
+
+```
+infrastructure/kubernetes/
+├── namespace.yaml          # ResourceQuota + LimitRange
+├── ingress.yaml           # TLS, rate limiting, security headers
+└── orchestrator/
+    ├── deployment.yaml    # Probes, resources, anti-affinity
+    ├── service.yaml       # ClusterIP + headless WS
+    ├── configmap.yaml     # Feature flags
+    └── secret.yaml        # Credential template
+```
+
+---
+
+## Phase 2.4.C: Observability ✅
+
+| Component | File |
+|-----------|------|
+| Prometheus Middleware | [metrics.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/middleware/metrics.py) |
+| Grafana Dashboard | [orchestrator.json](file:///home/project/opencode-industrial-orchestrator/infrastructure/monitoring/grafana/dashboards/orchestrator.json) |
+
+**Metrics:**
+- `http_requests_total`, `http_request_duration_seconds`
+- `orchestrator_active_sessions`, `orchestrator_active_agents`
+- `orchestrator_tasks_total`, `orchestrator_session_duration_seconds`
+
+---
+
+## Phase 2.4.D: CI/CD Pipeline ✅
+
+| Workflow | Purpose |
+|----------|---------|
+| [ci.yaml](file:///home/project/opencode-industrial-orchestrator/.github/workflows/ci.yaml) | Lint, type check, test, build images |
+| [cd.yaml](file:///home/project/opencode-industrial-orchestrator/.github/workflows/cd.yaml) | Deploy staging → production |
+
+**CI Jobs:** `lint-backend`, `lint-frontend`, `test-backend`, `build-images`
+
+---
+
+## Phase 2.4.E: Documentation ✅
+
+| File | Content |
 |------|---------|
-| [connection_manager.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/websocket/connection_manager.py) | Thread-safe connection pool with room-based broadcasting |
-| [events.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/websocket/events.py) | 6 WebSocket endpoints + 4 event publishers |
-| [__init__.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/websocket/__init__.py) | Package exports |
-
-### WebSocket Endpoints
-
-- `/ws/sessions/{id}` — Single session updates
-- `/ws/sessions` — All session events
-- `/ws/agents/{id}` — Single agent updates
-- `/ws/agents` — All agent events
-- `/ws/tasks/{id}` — Task updates
-- `/ws/system` — System health events
+| [docs/API.md](file:///home/project/opencode-industrial-orchestrator/docs/API.md) | Sessions, Agents, Tasks API + WebSocket endpoints |
 
 ---
 
-## Phase 2.3.B: Next.js Frontend Foundation
-
-### Project Setup
-
-- **Framework**: Next.js 16.1.6 (App Router)
-- **Styling**: Tailwind CSS v4.0 (CSS-first)
-- **TypeScript**: Enabled
-- **Font**: JetBrains Mono (industrial monospace)
-
-### Brutalist Design System
-
-[globals.css](file:///home/project/opencode-industrial-orchestrator/dashboard/src/app/globals.css) implements:
-
-- `@theme` — Industrial color palette (OKLCH)
-- `@utility` — Custom utilities (industrial-card, brutal-shadow, status-dot)
-- Zero rounded corners (`border-radius: 0 !important`)
-- Industrial shadows (offset, no blur)
-
----
-
-## Phase 2.3.C: Dashboard Pages
-
-### Overview (`/`)
-![Dashboard Overview showing stats cards, agent status, and sessions table]
-
-- Statistics cards: Running, Pending, Completed, Failed
-- Agent summary: Total and Active count
-- Active sessions table with status badges
-
-### Sessions (`/sessions`)
-- Filterable table with status chips
-- Priority badges (CRITICAL, HIGH, MEDIUM, LOW)
-- Create session button placeholder
-
-### Agents (`/agents`)
-- Agent cards with load gauges
-- Performance metrics (success rate, tasks completed)
-- Tier indicators (ELITE, STANDARD, PROBATION)
-
-### Tasks (`/tasks`)
-- Hierarchical task tree
-- Progress bars for parent tasks
-- Complexity filters
-
----
-
-## Build Verification
+## Verification
 
 ```
-✓ Compiled successfully in 3.8s
-✓ Generating static pages (7/7) in 292.6ms
-
-Route (app)
-├ ○ /
-├ ○ /agents
-├ ○ /sessions
-└ ○ /tasks
-
-○ (Static) prerendered as static content
+✓ Dashboard build: Next.js 16.1.6, 7 pages
+✓ Standalone output: Enabled
+✓ All K8s manifests: Valid YAML
 ```
 
 ---
 
-## Files Summary
+## Files Created
 
-### Backend (WebSocket)
-```
-orchestrator/src/industrial_orchestrator/presentation/api/websocket/
-├── __init__.py
-├── connection_manager.py
-└── events.py
-```
-
-### Frontend (Dashboard)
-```
-dashboard/src/
-├── app/
-│   ├── globals.css          — Brutalist design system
-│   ├── layout.tsx           — Root layout + sidebar
-│   ├── page.tsx             — Overview page
-│   ├── agents/page.tsx      — Agents monitoring
-│   ├── sessions/page.tsx    — Sessions list
-│   └── tasks/page.tsx       — Task hierarchy
-└── components/
-    └── layout/
-        └── sidebar.tsx      — Industrial sidebar nav
-```
-
----
-
-## Next Steps
-
-- [ ] **Phase 2.3.D**: API client + React Query hooks
-- [ ] WebSocket provider for real-time updates
-- [ ] Connect mock data to backend API
+| Category | Files |
+|----------|-------|
+| Containers | 2 Dockerfiles |
+| Kubernetes | 6 manifests |
+| CI/CD | 2 workflows |
+| Observability | 2 files |
+| Documentation | 1 file |
+| **Total** | **13 files** |

@@ -1,0 +1,131 @@
+# Phase 2.3 Walkthrough — Dashboard & Visualization
+
+> Completed: Feb 3, 2026
+
+## Summary
+
+Implemented the **Glass Box** monitoring interface for the Industrial Orchestrator:
+- Backend WebSocket support for real-time updates
+- Next.js 16 frontend with Tailwind v4 Brutalist aesthetic
+- 4 dashboard pages with industrial styling
+- Complete API layer with React Query hooks
+
+---
+
+## Phase 2.3.A: Backend WebSocket
+
+| File | Purpose |
+|------|---------|
+| [connection_manager.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/websocket/connection_manager.py) | Thread-safe connection pool with room-based broadcasting |
+| [events.py](file:///home/project/opencode-industrial-orchestrator/orchestrator/src/industrial_orchestrator/presentation/api/websocket/events.py) | 6 WebSocket endpoints + 4 event publishers |
+
+---
+
+## Phase 2.3.B: Next.js Foundation
+
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind v4 (CSS-first with `@theme`, `@utility`)
+- **Font**: JetBrains Mono (industrial)
+- **Theme**: Brutalist (zero border-radius, industrial shadows)
+
+---
+
+## Phase 2.3.C: Dashboard Pages
+
+| Route | Features |
+|-------|----------|
+| `/` | Stats cards, agent status, sessions table |
+| `/sessions` | Filter chips, table, priority badges |
+| `/agents` | Agent cards, load gauges, performance |
+| `/tasks` | Task hierarchy tree, progress bars |
+
+---
+
+## Phase 2.3.D: Frontend Services ✅ NEW
+
+### API Layer (`lib/api/`)
+
+| File | Purpose |
+|------|---------|
+| [client.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/api/client.ts) | Fetch-based API client with error handling |
+| [types.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/api/types.ts) | TypeScript types matching backend DTOs |
+| [sessions.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/api/sessions.ts) | Session hooks (list, detail, mutations) |
+| [agents.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/api/agents.ts) | Agent hooks (list, register, heartbeat) |
+| [tasks.ts](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/api/tasks.ts) | Task hooks (CRUD, decompose, assign) |
+
+### WebSocket Layer (`lib/websocket/`)
+
+| File | Purpose |
+|------|---------|
+| [provider.tsx](file:///home/project/opencode-industrial-orchestrator/dashboard/src/lib/websocket/provider.tsx) | WebSocket context with auto-reconnect |
+
+### Key Hooks
+
+```typescript
+// Queries
+useSessions({ status: "RUNNING" })
+useSession(id)
+useAgents({ available_only: true })
+useTasks({ session_id: id })
+
+// Mutations
+useCreateSession()
+useStartSession()
+useRegisterAgent()
+useDecomposeTask()
+
+// WebSocket
+useWebSocket()
+useWebSocketEvent("session.updated", handler)
+useSessionEvents(sessionId, { onStatusChanged })
+```
+
+---
+
+## Build Verification
+
+```
+✓ Compiled successfully in 3.7s
+✓ Generating static pages (7/7) in 294.7ms
+
+Route (app): /, /agents, /sessions, /tasks
+```
+
+---
+
+## Files Summary
+
+```
+dashboard/src/
+├── app/
+│   ├── globals.css        — Brutalist design system
+│   ├── layout.tsx         — Root layout + providers
+│   ├── page.tsx           — Overview
+│   ├── agents/page.tsx
+│   ├── sessions/page.tsx
+│   └── tasks/page.tsx
+├── components/
+│   ├── layout/sidebar.tsx
+│   └── providers.tsx      — React Query provider
+└── lib/
+    ├── api/
+    │   ├── client.ts
+    │   ├── types.ts
+    │   ├── sessions.ts
+    │   ├── agents.ts
+    │   ├── tasks.ts
+    │   └── index.ts
+    └── websocket/
+        ├── provider.tsx
+        └── index.ts
+```
+
+---
+
+## Next: Phase 2.4
+
+Production Hardening:
+- Container optimization (Dockerfiles)
+- Kubernetes manifests
+- Prometheus metrics
+- CI/CD pipelines

@@ -1,0 +1,42 @@
+# ============================================================================
+# INDUSTRIAL ORCHESTRATOR — SERVICE
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator-api
+  namespace: industrial-orchestrator
+  labels:
+    app.kubernetes.io/name: industrial-orchestrator
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: industrial-orchestrator
+    app.kubernetes.io/component: api
+---
+# Headless service for WebSocket connections
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator-ws
+  namespace: industrial-orchestrator
+  labels:
+    app.kubernetes.io/name: industrial-orchestrator
+    app.kubernetes.io/component: websocket
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless for direct pod access
+  ports:
+    - name: ws
+      port: 8000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: industrial-orchestrator
+    app.kubernetes.io/component: api

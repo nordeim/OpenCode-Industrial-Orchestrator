@@ -1,0 +1,36 @@
+# ============================================================================
+# INDUSTRIAL ORCHESTRATOR — CONFIGMAP
+# Non-sensitive configuration
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator-config
+  namespace: industrial-orchestrator
+  labels:
+    app.kubernetes.io/name: industrial-orchestrator
+    app.kubernetes.io/component: config
+data:
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  
+  # Application settings
+  APP_ENV: "production"
+  API_VERSION: "v1"
+  
+  # Feature flags
+  FEATURE_TASK_DECOMPOSITION: "true"
+  FEATURE_AGENT_PERFORMANCE_TRACKING: "true"
+  FEATURE_CONTEXT_MANAGEMENT: "true"
+  
+  # Rate limiting
+  RATE_LIMIT_REQUESTS_PER_MINUTE: "60"
+  
+  # WebSocket settings
+  WS_HEARTBEAT_INTERVAL_SECONDS: "30"
+  WS_MAX_CONNECTIONS_PER_CLIENT: "5"
+  
+  # Session defaults
+  SESSION_DEFAULT_TIMEOUT_SECONDS: "3600"
+  SESSION_MAX_CONCURRENT: "100"
