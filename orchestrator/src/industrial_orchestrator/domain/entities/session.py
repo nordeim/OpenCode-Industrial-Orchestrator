@@ -67,7 +67,7 @@ class SessionEntity(BaseModel):
     
     # Execution context
     agent_config: Dict[str, Any] = Field(default_factory=dict)
-    model_config: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
+    model_identifier: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
     initial_prompt: str = Field(..., min_length=1, max_length=10000)
     
     # Resource allocation
@@ -87,9 +87,10 @@ class SessionEntity(BaseModel):
     # Domain events (not persisted, for CQRS)
     _events: List[Any] = []
     
-    class Config:
-        arbitrary_types_allowed = True
-        validate_assignment = True
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "validate_assignment": True,
+    }
     
     @validator('title')
     def validate_title_format(cls, v: str) -> str:

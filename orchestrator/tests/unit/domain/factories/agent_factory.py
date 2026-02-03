@@ -9,6 +9,9 @@ from uuid import uuid4
 
 import factory
 from factory import LazyFunction, LazyAttribute, SubFactory
+from faker import Faker
+
+fake = Faker()
 
 from src.industrial_orchestrator.domain.entities.agent import (
     AgentEntity,
@@ -78,7 +81,7 @@ class AgentEntityFactory(factory.Factory):
     # Identity
     id = LazyFunction(uuid4)
     name = factory.LazyFunction(
-        lambda: f"Industrial-{factory.Faker('word').generate().capitalize()}-Agent"
+        lambda: f"Nexus-{fake.word().capitalize()}-{fake.pyint(min_value=100, max_value=999)}"
     )
     agent_type = AgentType.IMPLEMENTER
     description = factory.Faker('sentence', nb_words=10)
@@ -95,7 +98,7 @@ class AgentEntityFactory(factory.Factory):
     secondary_capabilities = factory.List([])
 
     # Configuration
-    model_config = "anthropic/claude-sonnet-4.5"
+    model_identifier = "anthropic/claude-sonnet-4.5"
     temperature = 0.3
     max_tokens = 8000
     system_prompt_template = factory.LazyFunction(
@@ -204,7 +207,7 @@ def create_agent_pool(
 
     agents = []
     for _ in range(count):
-        rand = factory.Faker('pyfloat', min_value=0, max_value=1).generate()
+        rand = fake.pyfloat(min_value=0, max_value=1)
         cumulative = 0
         selected_type = AgentType.IMPLEMENTER
 

@@ -62,8 +62,7 @@ class ExecutionMetrics(BaseModel):
     # Cost tracking (for cloud resources)
     estimated_cost_usd: Optional[float] = Field(None, ge=0)
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
     
     @validator('success_rate', 'confidence_score', 'code_quality_score')
     def validate_percentage_range(cls, v: Optional[float]) -> Optional[float]:

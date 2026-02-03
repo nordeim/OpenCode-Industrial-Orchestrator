@@ -142,7 +142,7 @@ class SessionEntityFactory(factory.Factory):
     
     # Execution context
     agent_config = factory.LazyFunction(lambda: IndustrialFaker().agent_config())
-    model_config = factory.LazyAttribute(lambda o: next(iter(o.agent_config.values()))['model'])
+    model_identifier = factory.LazyAttribute(lambda o: next(iter(o.agent_config.values()))['model'])
     initial_prompt = factory.Faker('text', max_nb_chars=500)
     
     # Resource allocation

@@ -9,6 +9,9 @@ from uuid import UUID, uuid4
 
 import factory
 from factory import LazyFunction, LazyAttribute, SubFactory
+from faker import Faker
+
+fake = Faker()
 
 from src.industrial_orchestrator.domain.entities.task import (
     TaskEntity,
@@ -53,7 +56,7 @@ class TaskEntityFactory(factory.Factory):
 
     # Task identity - must start with action verb
     title = factory.LazyFunction(
-        lambda: f"Implement {factory.Faker('word').generate().capitalize()} component"
+        lambda: f"Implement {fake.word().capitalize()} component"
     )
     description = factory.Faker('sentence', nb_words=15)
     task_type = "implementation"

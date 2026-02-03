@@ -70,8 +70,7 @@ class TaskDependency(BaseModel):
     is_required: bool = Field(default=True)
     description: Optional[str] = Field(None, max_length=200)
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
 
 
 class TaskEstimate(BaseModel):
@@ -207,8 +206,7 @@ class TaskEntity(BaseModel):
     # Child tasks (for decomposition)
     child_tasks: List["TaskEntity"] = Field(default_factory=list)
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
     
     @validator('title')
     def validate_task_title(cls, v: str) -> str:

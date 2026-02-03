@@ -303,7 +303,7 @@ class AgentEntity(BaseModel):
     secondary_capabilities: List[AgentCapability] = Field(default_factory=list)
     
     # Configuration
-    model_config: str = Field(..., pattern=r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
+    model_identifier: str = Field(..., pattern=r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-\.]+$")
     temperature: float = Field(default=0.3, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(None, ge=1000, le=100000)
     system_prompt_template: str = Field(default="")
@@ -333,8 +333,7 @@ class AgentEntity(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
     
     @validator('name')
     def validate_agent_name(cls, v: str) -> str:
@@ -427,9 +426,9 @@ class AgentEntity(BaseModel):
             raise ValueError("System prompt must be at least 50 characters and define agent role")
         
         # Validate model configuration
-        model_config = values.get('model_config', '')
-        if '/' not in model_config:
-            raise ValueError("Model configuration must be in format 'provider/model_name'")
+        model_id = values.get('model_identifier', '')
+        if '/' not in model_id:
+            raise ValueError("Model identifier must be in format 'provider/model_name'")
         
         # Set default max_tokens based on agent type
         if values.get('max_tokens') is None:
