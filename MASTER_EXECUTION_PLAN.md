@@ -1,8 +1,8 @@
 # MASTER EXECUTION PLAN — OpenCode Industrial Orchestrator
 
-> **Document Version**: 2.2  
-> **Created**: 2026-02-04  
-> **Status**: Phase 3.1 In Progress (Backend API Complete)
+> **Document Version**: 2.3
+> **Created**: 2026-02-04
+> **Status**: Phase 3.1 In Progress (Backend API & Plugin System Complete)
 
 ---
 
@@ -21,7 +21,7 @@ The **OpenCode Industrial Orchestrator** core system is **feature complete** and
 | 2.2 | Multi-Agent Intelligence | ✅ Complete | 100% |
 | 2.3 | Dashboard & Visualization | ✅ Complete | 100% |
 | 2.4 | Production Hardening | ✅ Complete | 100% |
-| 3.1 | Agent Marketplace & EAP | 🔄 In Progress | 50% |
+| 3.1 | Agent Marketplace & EAP | 🔄 In Progress | 80% |
 
 ---
 
@@ -40,10 +40,11 @@ Enable the orchestrator to dynamically load agents from external sources (e.g., 
     - ✅ Service Logic (`register_external_agent`, `authenticate_agent`)
     - ✅ API Endpoints (`/register`, `/heartbeat`)
 - **Plugin System:** Dynamic loading of agent adapters.
-    - 🔲 `EAPAgentAdapter` (Infrastructure) - *Next Step*
-    - 🔲 Task Dispatch Logic
+    - ✅ `ExternalAgentPort` (Application Port)
+    - ✅ `EAPAgentAdapter` (Infrastructure Adapter with `httpx`)
+    - ✅ `SessionService` Dispatch Logic (Internal vs. External routing)
 - **Marketplace UI:** Dashboard section to browse and install agents.
-    - 🔲 Frontend Pages
+    - 🔲 Frontend Pages (Browse, Details, Install)
 
 ### 3.2 — LLM Fine-Tuning Pipeline
 
@@ -103,12 +104,14 @@ Support multiple teams/organizations on a single instance.
 - `application/services/task_decomposition_service.py`
 - `application/services/context_service.py`
 - `application/dtos/external_agent_protocol.py` (New)
+- `application/ports/service_ports.py` (Updated)
 
 ### Infrastructure Layer (The plumbing)
 - `infrastructure/repositories/session_repository.py`
 - `infrastructure/repositories/agent_repository.py`
 - `infrastructure/locking/distributed_lock.py`
 - `infrastructure/adapters/opencode_client.py`
+- `infrastructure/adapters/eap_agent_adapter.py` (New)
 
 ### Presentation Layer (The Interface)
 - `presentation/api/main.py`

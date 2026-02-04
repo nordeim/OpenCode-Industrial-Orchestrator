@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "industrial-orchestrator"
+version = "0.1.0"
+description = "Industrial-grade OpenCode Orchestrator"
+authors = ["Industrial Orchestrator Team"]
+readme = "README.md"
+packages = [{include = "industrial_orchestrator", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "0.104.1"
+uvicorn = {extras = ["standard"], version = "0.24.0"}
+sqlalchemy = "2.0.23"
+asyncpg = "0.29.0"
+redis = "5.0.1"
+pydantic = "2.5.0"
+pydantic-settings = "2.1.0"
+alembic = "1.12.1"
+python-jose = {extras = ["cryptography"], version = "3.3.0"}
+passlib = {extras = ["bcrypt"], version = "1.7.4"}
+httpx = "0.25.1"
+aiofiles = "23.2.1"
+python-multipart = "0.0.6"
+tenacity = "^8.2.3"
+networkx = "^3.2"
+structlog = "^24.1.0"
+prometheus-client = "^0.19.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "7.4.3"
+pytest-asyncio = "0.21.1"
+pytest-cov = "4.1.0"
+pytest-mock = "3.12.0"
+black = "23.11.0"
+isort = "5.12.0"
+flake8 = "6.1.0"
+mypy = "1.7.0"
+factory-boy = "3.3.0"
+freezegun = "1.2.2"
+faker = "20.1.0"
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=src"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (slow)",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

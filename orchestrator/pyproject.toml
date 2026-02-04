@@ -4,46 +4,46 @@ version = "0.1.0"
 description = "Industrial-grade OpenCode Orchestrator"
 authors = ["Industrial Orchestrator Team"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "industrial_orchestrator", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "0.104.1"
-uvicorn = {extras = ["standard"], version = "0.24.0"}
-sqlalchemy = "2.0.23"
-asyncpg = "0.29.0"
-redis = "5.0.1"
-pydantic = "2.5.0"
-pydantic-settings = "2.1.0"
-alembic = "1.12.1"
-python-jose = {extras = ["cryptography"], version = "3.3.0"}
+python = "^3.13"
+fastapi = "0.118.0"
+uvicorn = {extras = ["standard"], version = "0.40.0"}
+sqlalchemy = "2.0.45"
+asyncpg = "0.30.0"
+redis = "6.4.0"
+pydantic = "2.11.9"
+pydantic-settings = "2.10.1"
+alembic = "1.14.0"
+python-jose = {extras = ["cryptography"], version = "3.5.0"}
 passlib = {extras = ["bcrypt"], version = "1.7.4"}
-httpx = "0.25.1"
-aiofiles = "23.2.1"
-python-multipart = "0.0.6"
-tenacity = "^8.2.3"
-networkx = "^3.2"
-structlog = "^24.1.0"
-prometheus-client = "^0.19.0"
+httpx = "0.28.1"
+aiofiles = "24.1.0"
+python-multipart = "0.0.20"
+tenacity = "^9.1.2"
+networkx = "^3.5"
+structlog = "^25.4.0"
+prometheus-client = "^0.22.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "7.4.3"
-pytest-asyncio = "0.21.1"
-pytest-cov = "4.1.0"
-pytest-mock = "3.12.0"
-black = "23.11.0"
-isort = "5.12.0"
-flake8 = "6.1.0"
-mypy = "1.7.0"
-factory-boy = "3.3.0"
-freezegun = "1.2.2"
-faker = "20.1.0"
+black = "^25.9.0"
+factory-boy = "^3.3.3"
+faker = "^37.6.0"
+fakeredis = "^2.33.0"
+flake8 = "^7.3.0"
+isort = "^7.0.0"
+mypy = "^1.17.1"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.1.0"
+pytest-cov = "^6.3.0"
+pytest-mock = "^3.15.0"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=src"
 testpaths = ["tests"]
 markers = [
-    "integration: marks tests as integration tests (slow)",
+integration: marks tests as integration tests (slow)"
 ]
 
 [build-system]

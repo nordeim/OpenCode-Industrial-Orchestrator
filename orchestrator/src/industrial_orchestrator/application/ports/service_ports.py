@@ -428,3 +428,56 @@ class MetricsPort(ABC):
     ) -> None:
         """Record a timing/latency metric."""
         pass
+
+
+class ExternalAgentPort(ABC):
+    """
+    Abstract interface for communicating with external agents via EAP.
+    
+    Industrial Features:
+    1. Protocol-agnostic dispatch (HTTP/WS)
+    2. Type-safe DTOs
+    3. Health monitoring
+    """
+    
+    @abstractmethod
+    async def send_task(
+        self,
+        agent_id: str,
+        endpoint_url: str,
+        auth_token: str,
+        task_assignment: 'EAPTaskAssignment'
+    ) -> 'EAPTaskResult':
+        """
+        Send a task to an external agent.
+        
+        Args:
+            agent_id: ID of the agent
+            endpoint_url: Agent's webhook URL
+            auth_token: Authentication token
+            task_assignment: Task details
+            
+        Returns:
+            EAPTaskResult with status and artifacts
+        """
+        pass
+    
+    @abstractmethod
+    async def check_health(
+        self,
+        agent_id: str,
+        endpoint_url: str,
+        auth_token: str
+    ) -> 'EAPHeartbeatRequest':
+        """
+        Active health check for an external agent.
+        
+        Args:
+            agent_id: ID of the agent
+            endpoint_url: Agent's webhook URL
+            auth_token: Authentication token
+            
+        Returns:
+            EAPHeartbeatRequest with status metrics
+        """
+        pass

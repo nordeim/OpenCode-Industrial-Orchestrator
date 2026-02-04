@@ -26,6 +26,9 @@ from ...domain.exceptions.session_exceptions import (
 from ...infrastructure.repositories.session_repository import SessionRepository
 from ...infrastructure.locking.distributed_lock import distributed_lock
 from ...infrastructure.adapters.opencode_client import IndustrialOpenCodeClient
+from ...application.ports.service_ports import ExternalAgentPort
+from ...application.ports.repository_ports import AgentRepositoryPort
+from ...application.dtos.external_agent_protocol import EAPTaskAssignment
 
 
 class SessionService:
@@ -43,11 +46,15 @@ class SessionService:
     def __init__(
         self,
         session_repository: Optional[SessionRepository] = None,
+        agent_repository: Optional[AgentRepositoryPort] = None,
         opencode_client: Optional[IndustrialOpenCodeClient] = None,
+        external_agent_adapter: Optional[ExternalAgentPort] = None,
         lock_timeout: int = 30
     ):
         self.session_repository = session_repository or SessionRepository()
+        self.agent_repository = agent_repository
         self.opencode_client = opencode_client
+        self.external_agent_adapter = external_agent_adapter
         self.lock_timeout = lock_timeout
         self._logger = logging.getLogger(__name__)
         
@@ -423,7 +430,111 @@ class SessionService:
             )
             
             return updated_session
-    
+
+    async def execute_session(
+        self,
+        session_id: UUID,
+        additional_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute session handling both internal and external agents.
+        
+        Args:
+            session_id: Session ID
+            additional_prompt: Optional extra prompt
+            
+        Returns:
+            Dict with execution result
+        """
+        # Get session
+        session = await self.session_repository.get_by_id(session_id)
+        if not session:
+            raise SessionNotFoundError(f"Session not found: {session_id}")
+            
+        # Identify agent
+        agent_name = None
+        if session.agent_config:
+            # Assumes config is {agent_name: config} or similar
+            # If default_agent key exists, might be different. 
+            # Logic: keys() are usually agent names if not reserved.
+            keys = [k for k in session.agent_config.keys() if k != "default_agent"]
+            if keys:
+                agent_name = keys[0]
+            elif "default_agent" in session.agent_config:
+                agent_name = session.agent_config["default_agent"]
+        
+        # Start session
+        await self.start_session(session_id)
+        
+        try:
+            execution_result = {}
+            is_external = False
+            
+            # Resolve agent if repository available
+            if self.agent_repository and agent_name:
+                agent = await self.agent_repository.get_by_name(agent_name)
+                if agent and agent.metadata.get("is_external"):
+                    is_external = True
+                    if not self.external_agent_adapter:
+                        raise RuntimeError("External agent adapter not configured")
+                    
+                    # Prepare EAP payload
+                    task_assignment = EAPTaskAssignment(
+                        task_id=uuid4(),
+                        session_id=session.id,
+                        task_type="session_execution",
+                        context=session.model_dump(mode='json'),
+                        input_data=f"{session.initial_prompt}\n\n{additional_prompt or ''}",
+                        requirements=session.tags
+                    )
+                    
+                    # Dispatch to external agent
+                    eap_result = await self.external_agent_adapter.send_task(
+                        agent_id=str(agent.id),
+                        endpoint_url=agent.metadata["endpoint_url"],
+                        auth_token=agent.metadata["auth_token"],
+                        task_assignment=task_assignment
+                    )
+                    
+                    # Map EAP result to session result
+                    execution_result = {
+                        "success": eap_result.status == "completed",
+                        "session_id": str(session_id),
+                        "artifacts": [a.model_dump() for a in eap_result.artifacts],
+                        "output": eap_result.output_data,
+                        "metrics": {
+                            "execution_time_ms": eap_result.execution_time_ms,
+                            "tokens_used": eap_result.tokens_used,
+                            "cost_usd": eap_result.cost_usd
+                        }
+                    }
+                    
+                    if eap_result.status == "failed":
+                        raise RuntimeError(f"External agent failed: {eap_result.error_message}")
+
+            # Fallback to internal OpenCode execution
+            if not is_external:
+                return await self.execute_with_opencode(session_id, additional_prompt)
+            
+            # Complete session for external execution
+            await self.complete_session(
+                session_id,
+                execution_result,
+                success_rate=1.0,
+                confidence_score=0.9
+            )
+            
+            return execution_result
+            
+        except Exception as e:
+            await self.fail_session(
+                session_id,
+                e,
+                error_context={"source": "agent_execution", "agent": agent_name},
+                retryable=True
+            )
+            raise
+
     async def execute_with_opencode(
         self,
         session_id: UUID,
@@ -449,8 +560,16 @@ class SessionService:
         if not session:
             raise SessionNotFoundError(f"Session not found: {session_id}")
         
-        # Start session
-        await self.start_session(session_id)
+        # Start session if not already running
+        if session.status == SessionStatus.PENDING:
+            await self.start_session(session_id)
+        elif session.status != SessionStatus.RUNNING:
+            raise InvalidSessionTransition(
+                current_status=session.status,
+                target_status=SessionStatus.RUNNING,
+                session_id=session.id,
+                reason="Session must be PENDING or RUNNING to execute"
+            )
         
         try:
             # Prepare prompt
