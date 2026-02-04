@@ -27,8 +27,10 @@ from ...infrastructure.repositories.session_repository import SessionRepository
 from ...infrastructure.locking.distributed_lock import distributed_lock
 from ...infrastructure.adapters.opencode_client import IndustrialOpenCodeClient
 from ...application.ports.service_ports import ExternalAgentPort
-from ...application.ports.repository_ports import AgentRepositoryPort
+from ...application.ports.repository_ports import AgentRepositoryPort, TenantRepositoryPort
 from ...application.dtos.external_agent_protocol import EAPTaskAssignment
+from ...domain.exceptions.tenant_exceptions import QuotaExceededError, TenantNotFoundError
+from ...application.context import get_current_tenant_id
 
 
 class SessionService:
@@ -47,12 +49,14 @@ class SessionService:
         self,
         session_repository: Optional[SessionRepository] = None,
         agent_repository: Optional[AgentRepositoryPort] = None,
+        tenant_repository: Optional[TenantRepositoryPort] = None,
         opencode_client: Optional[IndustrialOpenCodeClient] = None,
         external_agent_adapter: Optional[ExternalAgentPort] = None,
         lock_timeout: int = 30
     ):
         self.session_repository = session_repository or SessionRepository()
         self.agent_repository = agent_repository
+        self.tenant_repository = tenant_repository
         self.opencode_client = opencode_client
         self.external_agent_adapter = external_agent_adapter
         self.lock_timeout = lock_timeout
@@ -106,8 +110,24 @@ class SessionService:
         if not initial_prompt or not initial_prompt.strip():
             raise ValueError("Initial prompt is required")
         
+        # Multi-tenant: Resolve tenant context
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            raise ValueError("Tenant context required for session creation")
+            
+        # Check Quota
+        if self.tenant_repository:
+            tenant = await self.tenant_repository.get_by_id(tenant_id)
+            if not tenant:
+                raise TenantNotFoundError(f"Tenant {tenant_id} not found")
+                
+            active_count = await self.session_repository.count_active_by_tenant(tenant_id)
+            if active_count >= tenant.max_concurrent_sessions:
+                raise QuotaExceededError("concurrent_sessions", tenant.max_concurrent_sessions)
+        
         # Create session entity
         session = SessionEntity(
+            tenant_id=tenant_id,
             title=title.strip(),
             initial_prompt=initial_prompt.strip(),
             session_type=session_type,

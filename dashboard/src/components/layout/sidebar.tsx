@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { setTenantId } from "@/lib/api/client";
 
 /**
  * Navigation items for the industrial sidebar
@@ -35,6 +36,20 @@ export function Sidebar() {
                     <br />
                     ORCHESTRATOR
                 </h1>
+                
+                {/* Tenant Selector */}
+                <div className="mt-4">
+                    <label className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">Active Team</label>
+                    <select 
+                        onChange={(e) => setTenantId(e.target.value || null)}
+                        className="w-full bg-background border-2 border-border text-xs font-mono p-1 focus:border-accent outline-none"
+                    >
+                        <option value="">System Default</option>
+                        <option value="00000000-0000-0000-0000-000000000001">Alpha Team</option>
+                        <option value="00000000-0000-0000-0000-000000000002">Beta Division</option>
+                    </select>
+                </div>
+
                 <div className="mt-2 text-xs text-muted-foreground font-mono">
                     v0.2.0 // OPERATIONAL
                 </div>

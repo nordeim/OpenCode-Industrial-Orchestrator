@@ -12,6 +12,14 @@
 // Environment configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+let currentTenantId: string | null = null;
+
+export const setTenantId = (id: string | null) => {
+    currentTenantId = id;
+};
+
+export const getTenantId = () => currentTenantId;
+
 /**
  * API Error with detailed information
  */
@@ -62,12 +70,18 @@ async function request<T>(
 
     const url = buildUrl(path, params);
 
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...((fetchConfig.headers as Record<string, string>) || {}),
+    };
+
+    if (currentTenantId) {
+        headers["X-Tenant-ID"] = currentTenantId;
+    }
+
     const response = await fetch(url, {
         ...fetchConfig,
-        headers: {
-            "Content-Type": "application/json",
-            ...fetchConfig.headers,
-        },
+        headers,
     });
 
     // Handle error responses

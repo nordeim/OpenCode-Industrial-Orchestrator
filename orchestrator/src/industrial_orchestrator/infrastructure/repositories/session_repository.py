@@ -343,6 +343,27 @@ class SessionRepository(IndustrialRepository[SessionEntity, SessionModel, UUID])
             options = QueryOptions(filters=filters)
         
         return await self.find(options)
+
+    async def count_active_by_tenant(self, tenant_id: UUID) -> int:
+        """Count non-terminal sessions for a specific tenant"""
+        active_statuses = [
+            SessionStatusDB.PENDING,
+            SessionStatusDB.QUEUED,
+            SessionStatusDB.RUNNING,
+            SessionStatusDB.PAUSED,
+            SessionStatusDB.DEGRADED,
+        ]
+        
+        async with self._get_session() as session:
+            query = select(func.count(self.model_class.id)).where(
+                and_(
+                    self.model_class.tenant_id == tenant_id,
+                    self.model_class.status.in_(active_statuses),
+                    self.model_class.deleted_at.is_(None)
+                )
+            )
+            result = await session.execute(query)
+            return result.scalar() or 0
     
     async def find_by_priority(
         self,

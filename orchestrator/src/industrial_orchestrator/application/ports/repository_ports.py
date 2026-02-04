@@ -138,6 +138,11 @@ class SessionRepositoryPort(ABC):
         pass
     
     @abstractmethod
+    async def count_active_by_tenant(self, tenant_id: UUID) -> int:
+        """Count non-terminal sessions for a specific tenant."""
+        pass
+    
+    @abstractmethod
     async def add_checkpoint(
         self,
         session_id: UUID,
