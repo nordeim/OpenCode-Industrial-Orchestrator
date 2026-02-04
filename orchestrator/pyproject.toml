@@ -39,6 +39,13 @@ factory-boy = "3.3.0"
 freezegun = "1.2.2"
 faker = "20.1.0"
 
+[tool.pytest.ini_options]
+addopts = "-v --cov=src"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (slow)",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

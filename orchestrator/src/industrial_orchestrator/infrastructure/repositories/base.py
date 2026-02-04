@@ -25,7 +25,8 @@ from sqlalchemy.exc import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload, load_only
-from pydantic import BaseModel
+from sqlalchemy import func
+from pydantic import BaseModel, ConfigDict
 
 from ...domain.entities.base import DomainEntity
 from ...domain.exceptions.repository_exceptions import (
@@ -73,8 +74,7 @@ class FilterCondition(BaseModel):
     operator: FilterOperator
     value: Any
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class QueryOptions(BaseModel):
@@ -88,8 +88,7 @@ class QueryOptions(BaseModel):
     eager_load: List[str] = []
     select_only: List[str] = []
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class PaginatedResult(BaseModel):

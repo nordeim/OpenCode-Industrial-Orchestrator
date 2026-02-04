@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Phase_2.4_Complete-brightgreen?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/Tests-212_Passing-success?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Tests-321_Passing-success?style=flat-square" alt="Tests"/>
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/Architecture-Hexagonal-7B4EA8?style=flat-square" alt="Architecture"/>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"/>
@@ -124,7 +124,7 @@ graph LR
 - Docker & Docker Compose
 - Python 3.11+
 - Poetry (`pip install poetry`)
-- Node.js 18+ (for dashboard)
+- Node.js 18.17+ (for dashboard)
 
 ### 1. Start Infrastructure
 ```bash
@@ -141,7 +141,7 @@ poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reloa
 
 ### 3. Run Tests
 ```bash
-poetry run pytest  # 212 tests
+poetry run pytest  # 321 tests
 ```
 
 ### 4. Start Dashboard (Optional)
@@ -204,7 +204,7 @@ opencode-industrial-orchestrator/
 │   │   └── presentation/             # 🖥️ Entry Points
 │   │       ├── api/                  # FastAPI routers
 │   │       └── websocket/            # Real-time events
-│   ├── tests/                        # 212 unit tests
+│   ├── tests/                        # 321 unit & integration tests
 │   └── alembic/                      # Database migrations
 │
 ├── dashboard/                        # Next.js Frontend
@@ -226,7 +226,8 @@ We practice **Test-Driven Development (TDD)** religiously.
 | Task Entity | 53 |
 | Context Entity | 39 |
 | Task Decomposition Service | 24 |
-| **Total** | **212** |
+| Integration & Infrastructure | ~109 |
+| **Total** | **321** |
 
 ```bash
 # Run all tests

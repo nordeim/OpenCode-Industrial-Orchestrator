@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional, Set, Tuple
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import networkx as nx
 
 from .agent import AgentCapability
@@ -70,7 +70,7 @@ class TaskDependency(BaseModel):
     is_required: bool = Field(default=True)
     description: Optional[str] = Field(None, max_length=200)
     
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TaskEstimate(BaseModel):
@@ -206,9 +206,10 @@ class TaskEntity(BaseModel):
     # Child tasks (for decomposition)
     child_tasks: List["TaskEntity"] = Field(default_factory=list)
     
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
-    @validator('title')
+    @field_validator('title')
+    @classmethod
     def validate_task_title(cls, v: str) -> str:
         """Ensure task titles are descriptive and actionable"""
         if not v.strip():

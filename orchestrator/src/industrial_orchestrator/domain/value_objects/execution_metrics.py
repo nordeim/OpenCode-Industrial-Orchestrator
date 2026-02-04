@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class ExecutionMetrics(BaseModel):
@@ -62,9 +62,10 @@ class ExecutionMetrics(BaseModel):
     # Cost tracking (for cloud resources)
     estimated_cost_usd: Optional[float] = Field(None, ge=0)
     
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
-    @validator('success_rate', 'confidence_score', 'code_quality_score')
+    @field_validator('success_rate', 'confidence_score', 'code_quality_score')
+    @classmethod
     def validate_percentage_range(cls, v: Optional[float]) -> Optional[float]:
         """Ensure percentage values are between 0 and 1"""
         if v is not None and not 0 <= v <= 1:

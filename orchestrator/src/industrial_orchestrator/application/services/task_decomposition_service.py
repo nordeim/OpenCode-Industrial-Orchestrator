@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from datetime import datetime, timezone
 
 import networkx as nx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from ...domain.entities.task import (
     TaskEntity, TaskDecompositionTemplate, TaskComplexityLevel,
@@ -32,8 +32,7 @@ class DecompositionRule(BaseModel):
     parameters: Dict[str, Any] = Field(default_factory=dict)
     priority: int = Field(default=1, ge=1, le=10)
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ComplexityAnalyzer(BaseModel):

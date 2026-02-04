@@ -295,7 +295,7 @@ orchestrator/src/industrial_orchestrator/
 
 ### Key Commands
 ```bash
-# Run all tests (212 tests)
+# Run all tests (321 tests)
 poetry run pytest
 
 # Run unit tests only
@@ -322,7 +322,8 @@ cd dashboard && npm run dev
 | Task Entity | 53 | ✅ |
 | Context Entity | 39 | ✅ |
 | Task Decomposition Service | 24 | ✅ |
-| **Total** | **212** | ✅ |
+| Integration & Infrastructure | ~109 | ✅ |
+| **Total** | **321** | ✅ |
 
 ---
 
@@ -336,7 +337,7 @@ cd dashboard && npm run dev
 - 212 comprehensive unit tests
 
 ### ✅ Phase 2.3: Dashboard & Visualization (Complete)
-- Next.js 14 frontend with "Brutalist" Industrial aesthetic
+- Next.js 16 frontend with "Brutalist" Industrial aesthetic (Tailwind v4)
 - Real-time "Glass Box" Session Detail view (Live logs, Metrics, Timeline)
 - WebSocket integration (`ConnectionManager`) for instant state updates
 - Recursive Task Tree visualization

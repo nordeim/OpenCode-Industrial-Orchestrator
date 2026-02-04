@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional, Set
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict, ValidationInfo
 
 from ..value_objects.session_status import SessionStatus
 from ..exceptions.agent_exceptions import (
@@ -333,9 +333,10 @@ class AgentEntity(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def validate_agent_name(cls, v: str) -> str:
         """Enforce industrial naming conventions"""
         if not v.strip():
@@ -356,10 +357,11 @@ class AgentEntity(BaseModel):
         
         return v.strip()
     
-    @validator('primary_capabilities')
-    def validate_capabilities(cls, v: List[AgentCapability], values: Dict[str, Any]) -> List[AgentCapability]:
+    @field_validator('primary_capabilities')
+    @classmethod
+    def validate_capabilities(cls, v: List[AgentCapability], info: ValidationInfo) -> List[AgentCapability]:
         """Ensure capabilities align with agent type"""
-        agent_type = values.get('agent_type')
+        agent_type = info.data.get('agent_type')
         
         if not v:
             raise ValueError("Agent must have at least one primary capability")
@@ -415,23 +417,19 @@ class AgentEntity(BaseModel):
         
         return v
     
-    @root_validator(skip_on_failure=True)
-    def validate_agent_configuration(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='after')
+    def validate_agent_configuration(self) -> 'AgentEntity':
         """Comprehensive agent configuration validation"""
-        agent_type = values.get('agent_type')
-        system_prompt = values.get('system_prompt_template', '')
-        
         # Ensure system prompt contains role information
-        if not system_prompt or len(system_prompt.strip()) < 50:
+        if not self.system_prompt_template or len(self.system_prompt_template.strip()) < 50:
             raise ValueError("System prompt must be at least 50 characters and define agent role")
         
         # Validate model configuration
-        model_id = values.get('model_identifier', '')
-        if '/' not in model_id:
+        if '/' not in self.model_identifier:
             raise ValueError("Model identifier must be in format 'provider/model_name'")
         
         # Set default max_tokens based on agent type
-        if values.get('max_tokens') is None:
+        if self.max_tokens is None:
             type_token_map = {
                 AgentType.ARCHITECT: 4000,
                 AgentType.IMPLEMENTER: 8000,
@@ -442,9 +440,9 @@ class AgentEntity(BaseModel):
                 AgentType.ANALYST: 3000,
                 AgentType.OPTIMIZER: 2000,
             }
-            values['max_tokens'] = type_token_map.get(agent_type, 4000)
+            self.max_tokens = type_token_map.get(self.agent_type, 4000)
         
-        return values
+        return self
     
     @property
     def all_capabilities(self) -> Set[AgentCapability]:

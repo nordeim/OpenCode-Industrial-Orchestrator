@@ -19,7 +19,8 @@ from httpx import (
     ConnectError,
     ReadTimeout,
 )
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -55,7 +56,7 @@ class OpenCodeCommand(str, Enum):
     DELETE_SESSION = "delete_session"
 
 
-class OpenCodeAPISettings(BaseModel):
+class OpenCodeAPISettings(BaseSettings):
     """OpenCode API configuration"""
     
     base_url: str = "http://localhost:4096"
@@ -76,11 +77,13 @@ class OpenCodeAPISettings(BaseModel):
     cache_ttl_seconds: int = 300  # 5 minutes
     session_cache_ttl: int = 600  # 10 minutes for session data
     
-    class Config:
-        env_prefix = "OPENCODE_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_prefix="OPENCODE_",
+        case_sensitive=False
+    )
     
-    @validator('base_url')
+    @field_validator('base_url')
+    @classmethod
     def validate_base_url(cls, v: str) -> str:
         """Ensure base URL ends without trailing slash"""
         return v.rstrip('/')
@@ -99,8 +102,7 @@ class OpenCodeRequest(BaseModel):
     cache_key: Optional[str] = None
     cache_ttl: Optional[int] = None
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class OpenCodeResponse(BaseModel):

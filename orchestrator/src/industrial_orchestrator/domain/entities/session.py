@@ -9,7 +9,7 @@ from enum import Enum, auto
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from ..value_objects.session_status import SessionStatus
 from ..value_objects.execution_metrics import ExecutionMetrics
@@ -87,12 +87,13 @@ class SessionEntity(BaseModel):
     # Domain events (not persisted, for CQRS)
     _events: List[Any] = []
     
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "validate_assignment": True,
-    }
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+    )
     
-    @validator('title')
+    @field_validator('title')
+    @classmethod
     def validate_title_format(cls, v: str) -> str:
         """Enforce industrial naming convention"""
         if not v.strip():
@@ -109,7 +110,8 @@ class SessionEntity(BaseModel):
         
         return v.strip()
     
-    @validator('agent_config')
+    @field_validator('agent_config')
+    @classmethod
     def validate_agent_config(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure agent configuration follows industrial standards"""
         if not v:

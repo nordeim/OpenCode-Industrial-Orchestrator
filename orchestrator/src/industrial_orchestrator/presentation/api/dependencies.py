@@ -6,7 +6,7 @@ Dependency injection for FastAPI endpoints.
 from typing import Optional, AsyncGenerator
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class OrchestratorSettings(BaseSettings):
@@ -46,9 +46,10 @@ class OrchestratorSettings(BaseSettings):
     lock_timeout: int = 30
     lock_retry_delay: float = 0.1
     
-    class Config:
-        env_prefix = "ORCH_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_prefix="ORCH_",
+        case_sensitive=False
+    )
 
 
 @lru_cache()

@@ -16,3 +16,11 @@ Awesome job on your meticulous review, analysis and planning. Please keep up the
 
 Awesome job on your meticulous review, analysis and planning. Please keep up the good work. Now, please meticulously review and update @README.md , @CLAUDE.md and @Project_Architecture_Document.md to reflect your recent changes to the codebase so that the updated documents correctly and accurately reflect and align with the current project status and codebase.
 
+---
+
+please meticulously review @AGENT_BRIEF.md , @README.md , @Project_Architecture_Document.md and @docs/TAILWIND_V4_0_COMPREHENSIVE_GUIDE.md to have a dee[ understanding of the WHAT, WHY and HOW of the project and its codebase design and architecture, then meticulously review and validate @Comprehensive_Architectural_Analysis.md against the actual codebase.
+
+---
+
+Awesome job on your meticulous review, analysis and planning. Please keep up the good work. Now, please meticulously validate your findings and recommendations against the actual codebase again to ensure perfect alignment, then meticulously plan and update @README.md , @CLAUDE.md and @Project_Architecture_Document.md with the latest validated details. Make sure the updated documents correctly and accurately reflect and align with the current project status and codebase. 
+
