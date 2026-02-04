@@ -1,8 +1,8 @@
 # MASTER EXECUTION PLAN — OpenCode Industrial Orchestrator
 
-> **Document Version**: 2.0  
+> **Document Version**: 2.1  
 > **Created**: 2026-02-04  
-> **Status**: Phase 2 Complete. Entering Phase 3.
+> **Status**: Phase 3.1 In Progress
 
 ---
 
@@ -21,6 +21,7 @@ The **OpenCode Industrial Orchestrator** core system is **feature complete** and
 | 2.2 | Multi-Agent Intelligence | ✅ Complete | 100% |
 | 2.3 | Dashboard & Visualization | ✅ Complete | 100% |
 | 2.4 | Production Hardening | ✅ Complete | 100% |
+| 3.1 | Agent Marketplace & EAP | 🔄 In Progress | 20% |
 
 ---
 
@@ -34,6 +35,8 @@ Enable the orchestrator to dynamically load agents from external sources (e.g., 
 
 **Key Deliverables:**
 - **External Agent Protocol (EAP):** Standardized JSON/gRPC interface for agent communication.
+    - ✅ ADR 001 Created
+    - ✅ DTOs Implemented (`external_agent_protocol.py`)
 - **Plugin System:** Dynamic loading of agent adapters.
 - **Marketplace UI:** Dashboard section to browse and install agents.
 
@@ -94,6 +97,7 @@ Support multiple teams/organizations on a single instance.
 - `application/services/agent_management_service.py`
 - `application/services/task_decomposition_service.py`
 - `application/services/context_service.py`
+- `application/dtos/external_agent_protocol.py` (New)
 
 ### Infrastructure Layer (The plumbing)
 - `infrastructure/repositories/session_repository.py`
