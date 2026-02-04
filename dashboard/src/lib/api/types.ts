@@ -207,6 +207,40 @@ export interface Context {
 }
 
 // ============================================================================
+// FINE-TUNING TYPES
+// ============================================================================
+
+export type FineTuningStatus =
+    | "pending"
+    | "queued"
+    | "running"
+    | "evaluating"
+    | "completed"
+    | "failed"
+    | "cancelled";
+
+export interface CreateFineTuningJobRequest {
+    base_model: string;
+    target_model_name: string;
+    epochs?: number;
+    learning_rate?: number;
+}
+
+export interface FineTuningJobResponse {
+    id: string;
+    base_model: string;
+    target_model_name: string;
+    status: FineTuningStatus;
+    sample_count: number;
+    dataset_path?: string;
+    created_at: string;
+    started_at?: string;
+    completed_at?: string;
+    error_message?: string;
+    metadata?: Record<string, unknown>;
+}
+
+// ============================================================================
 // HEALTH TYPES
 // ============================================================================
 
