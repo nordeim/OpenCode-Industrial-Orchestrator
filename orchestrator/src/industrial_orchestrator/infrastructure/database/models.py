@@ -62,6 +62,31 @@ class SessionPriorityDB(enum.IntEnum):
     DEFERRED = 4
 
 
+class TenantModel(Base, TimestampMixin):
+    """
+    Industrial Tenant Database Model
+    """
+    __tablename__ = "tenants"
+    
+    id = Column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        server_default=text("gen_random_uuid()")
+    )
+    name = Column(String(100), nullable=False)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    
+    max_concurrent_sessions = Column(Integer, default=10)
+    max_tokens_per_month = Column(BigInteger, default=1000000)
+    
+    is_active = Column(Boolean, default=True)
+    meta_data = Column(JSONB, nullable=False, default=text("'{}'::jsonb"))
+
+    sessions = relationship("SessionModel", back_populates="tenant")
+    fine_tuning_jobs = relationship("FineTuningJobModel", back_populates="tenant")
+
+
 class SessionModel(Base, TimestampMixin):
     """
     Industrial Session Database Model
@@ -80,6 +105,7 @@ class SessionModel(Base, TimestampMixin):
         Index("idx_sessions_status_priority", "status", "priority"),
         Index("idx_sessions_parent_created", "parent_id", "created_at"),
         Index("idx_sessions_type_status", "session_type", "status"),
+        Index("idx_sessions_tenant", "tenant_id"),
         
         # Partial indexes for active sessions
         Index(
@@ -119,6 +145,13 @@ class SessionModel(Base, TimestampMixin):
         default=uuid4,
         server_default=text("gen_random_uuid()"),
         comment="Globally unique session identifier"
+    )
+    
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE", name="fk_sessions_tenant"),
+        nullable=False,
+        index=True
     )
     
     # Business identity
@@ -277,6 +310,8 @@ class SessionModel(Base, TimestampMixin):
     )
     
     # Relationships
+    tenant = relationship("TenantModel", back_populates="sessions")
+    
     parent = relationship(
         "SessionModel",
         remote_side=[id],
@@ -783,6 +818,13 @@ class FineTuningJobModel(Base, TimestampMixin):
         server_default=text("gen_random_uuid()")
     )
     
+    tenant_id = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE", name="fk_fine_tuning_tenant"),
+        nullable=False,
+        index=True
+    )
+    
     base_model = Column(String(100), nullable=False)
     target_model_name = Column(String(100), nullable=False)
     status = Column(String(50), nullable=False, index=True)
@@ -797,6 +839,8 @@ class FineTuningJobModel(Base, TimestampMixin):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
+
+    tenant = relationship("TenantModel", back_populates="fine_tuning_jobs")
     
     def to_dict(self) -> Dict[str, Any]:
         return {

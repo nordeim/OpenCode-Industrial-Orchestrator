@@ -462,3 +462,28 @@ class FineTuningRepositoryPort(ABC):
     async def get_active_jobs(self) -> List[Any]:
         """Retrieve all currently running or queued jobs."""
         pass
+
+
+class TenantRepositoryPort(IndustrialRepositoryPort[Any]): # Tenant
+    """
+    Tenant persistence operations.
+    """
+    @abstractmethod
+    async def get_by_slug(self, slug: str) -> Optional[Any]:
+        """Retrieve tenant by URL slug."""
+        pass
+
+
+class UserRepositoryPort(IndustrialRepositoryPort[Any]): # User
+    """
+    User persistence operations.
+    """
+    @abstractmethod
+    async def get_by_email(self, email: str) -> Optional[Any]:
+        """Retrieve user by email address."""
+        pass
+    
+    @abstractmethod
+    async def find_by_tenant(self, tenant_id: UUID) -> List[Any]:
+        """Find all users belonging to a tenant."""
+        pass

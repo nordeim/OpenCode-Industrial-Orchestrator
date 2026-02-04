@@ -165,6 +165,7 @@ class TaskEntity(BaseModel):
     """
     
     id: UUID = Field(default_factory=uuid4)
+    tenant_id: UUID = Field(...)  # Required for isolation
     session_id: UUID
     parent_task_id: Optional[UUID] = None
     

@@ -29,6 +29,7 @@ from sqlalchemy import func
 from pydantic import BaseModel, ConfigDict
 
 from ...domain.entities.base import DomainEntity
+from ...application.context import get_current_tenant_id
 from ...domain.exceptions.repository_exceptions import (
     EntityNotFoundError,
     EntityAlreadyExistsError,
@@ -225,6 +226,11 @@ class IndustrialRepository(ABC, Generic[T, M, ID]):
     def _build_query(self, session: AsyncSession, options: QueryOptions):
         """Build SQLAlchemy query based on options"""
         query = select(self.model_class)
+        
+        # Apply multi-tenant isolation
+        tenant_id = get_current_tenant_id()
+        if tenant_id and hasattr(self.model_class, 'tenant_id'):
+            query = query.where(self.model_class.tenant_id == tenant_id)
         
         # Apply soft deletion filter
         if not options.include_deleted:

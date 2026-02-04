@@ -23,6 +23,7 @@ from .routers import (
 from .websocket import websocket_router, manager as ws_manager
 from .dependencies import get_settings
 from .middleware.metrics import PrometheusMiddleware, metrics_endpoint
+from .middleware.tenant import TenantMiddleware
 
 # Configure structlog for JSON output (Industrial Standard)
 import structlog
@@ -164,6 +165,9 @@ def create_app() -> FastAPI:
 
     # Register Prometheus Middleware
     app.add_middleware(PrometheusMiddleware)
+    
+    # Register Tenant Middleware
+    app.add_middleware(TenantMiddleware)
     
     # Register routers
     app.include_router(sessions_router, prefix="/api/v1")

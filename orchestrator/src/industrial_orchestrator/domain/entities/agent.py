@@ -294,6 +294,7 @@ class AgentEntity(BaseModel):
     """
     
     id: UUID = Field(default_factory=uuid4)
+    tenant_id: UUID = Field(...)  # Required for isolation
     name: str = Field(..., min_length=1, max_length=100)
     agent_type: AgentType
     description: Optional[str] = Field(None, max_length=500)

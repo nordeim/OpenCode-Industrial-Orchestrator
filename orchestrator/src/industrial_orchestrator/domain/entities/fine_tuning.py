@@ -35,6 +35,7 @@ class FineTuningJob(DomainEntity):
     Industrial entity representing a fine-tuning job.
     """
     id: UUID = Field(default_factory=uuid4)
+    tenant_id: UUID = Field(...)  # Required for isolation
     base_model: str = Field(..., min_length=1)
     target_model_name: str = Field(..., min_length=1)
     version: ModelVersion = Field(default_factory=ModelVersion)

@@ -37,6 +37,7 @@ class FineTuningRepository(IndustrialRepository[FineTuningJob, FineTuningJobMode
         """Convert database model to domain entity"""
         return FineTuningJob(
             id=model.id,
+            tenant_id=model.tenant_id,
             base_model=model.base_model,
             target_model_name=model.target_model_name,
             status=FineTuningStatus(model.status),
@@ -53,7 +54,7 @@ class FineTuningRepository(IndustrialRepository[FineTuningJob, FineTuningJobMode
         
     def _to_model(self, entity: FineTuningJob, existing_model: Optional[FineTuningJobModel] = None) -> FineTuningJobModel:
         """Convert domain entity to database model"""
-        model = existing_model or FineTuningJobModel(id=entity.id)
+        model = existing_model or FineTuningJobModel(id=entity.id, tenant_id=entity.tenant_id)
         
         model.base_model = entity.base_model
         model.target_model_name = entity.target_model_name

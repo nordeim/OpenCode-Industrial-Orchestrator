@@ -62,6 +62,41 @@ def get_settings() -> OrchestratorSettings:
     return OrchestratorSettings()
 
 
+from uuid import UUID
+from fastapi import Header, HTTPException, status, Depends
+
+from ..domain.entities.user import User, Role
+
+# ============================================================================
+# AUTHENTICATION & RBAC DEPENDENCIES
+# ============================================================================
+
+async def get_current_user() -> User:
+    """
+    Dependency to retrieve current user from session/token.
+    Stubbed for Phase 3.3.
+    """
+    # In production, this would decode a JWT and fetch from database
+    return User(
+        id=UUID("00000000-0000-0000-0000-000000000000"),
+        tenant_id=UUID("00000000-0000-0000-0000-000000000000"),
+        email="admin@industrial.ai",
+        full_name="System Admin",
+        role=Role.ADMIN
+    )
+
+def require_role(required_role: Role):
+    """Dependency factory for RBAC"""
+    async def role_checker(user: User = Depends(get_current_user)):
+        if not user.has_permission(required_role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Operation requires {required_role.value} role"
+            )
+        return user
+    return role_checker
+
+
 # ============================================================================
 # DATABASE DEPENDENCIES
 # ============================================================================

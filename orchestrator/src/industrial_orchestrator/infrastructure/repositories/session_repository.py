@@ -107,6 +107,7 @@ class SessionRepository(IndustrialRepository[SessionEntity, SessionModel, UUID])
         # Create entity
         entity = SessionEntity(
             id=model.id,
+            tenant_id=model.tenant_id,
             created_at=model.created_at,
             title=model.title,
             description=model.description,
@@ -144,7 +145,7 @@ class SessionRepository(IndustrialRepository[SessionEntity, SessionModel, UUID])
         if existing_model:
             model = existing_model
         else:
-            model = SessionModel(id=entity.id)
+            model = SessionModel(id=entity.id, tenant_id=entity.tenant_id)
         
         # Update basic fields
         model.title = entity.title
