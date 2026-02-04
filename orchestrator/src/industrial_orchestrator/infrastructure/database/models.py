@@ -770,6 +770,53 @@ class SessionCheckpointModel(Base):
         }
 
 
+class FineTuningJobModel(Base, TimestampMixin):
+    """
+    Database model for fine-tuning jobs.
+    """
+    __tablename__ = "fine_tuning_jobs"
+    
+    id = Column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        server_default=text("gen_random_uuid()")
+    )
+    
+    base_model = Column(String(100), nullable=False)
+    target_model_name = Column(String(100), nullable=False)
+    status = Column(String(50), nullable=False, index=True)
+    
+    version = Column(JSONB, nullable=False)
+    parameters = Column(JSONB, nullable=False)
+    metrics = Column(JSONB, nullable=False)
+    
+    dataset_path = Column(String(500), nullable=True)
+    sample_count = Column(Integer, default=0)
+    
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": str(self.id),
+            "base_model": self.base_model,
+            "target_model_name": self.target_model_name,
+            "status": self.status,
+            "version": self.version,
+            "parameters": self.parameters,
+            "metrics": self.metrics,
+            "dataset_path": self.dataset_path,
+            "sample_count": self.sample_count,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 # Database-level functions and triggers
 def create_industrial_triggers():
     """Create industrial-grade database triggers"""

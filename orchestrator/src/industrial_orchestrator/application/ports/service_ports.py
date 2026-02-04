@@ -481,3 +481,30 @@ class ExternalAgentPort(ABC):
             EAPHeartbeatRequest with status metrics
         """
         pass
+
+
+class TrainingProviderPort(ABC):
+    """
+    Abstract interface for external LLM training compute providers.
+    """
+    
+    @abstractmethod
+    async def start_training(self, job: Any) -> str: # Returns external_job_id
+        """
+        Submit a fine-tuning job to the provider.
+        """
+        pass
+        
+    @abstractmethod
+    async def get_status(self, external_job_id: str) -> Dict[str, Any]:
+        """
+        Poll for job status and metrics.
+        """
+        pass
+        
+    @abstractmethod
+    async def cancel_job(self, external_job_id: str) -> bool:
+        """
+        Stop an active training run.
+        """
+        pass

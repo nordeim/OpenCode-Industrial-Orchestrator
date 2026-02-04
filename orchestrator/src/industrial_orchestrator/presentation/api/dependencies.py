@@ -153,6 +153,18 @@ async def get_context_service():
     return None
 
 
+async def get_fine_tuning_service():
+    """
+    Get fine-tuning service instance.
+    """
+    # Placeholder for wiring:
+    # session_repo = SessionRepository()
+    # curator = DatasetCuratorService(session_repo)
+    # ft_repo = FineTuningRepository()
+    # return FineTuningService(ft_repo, curator)
+    return None
+
+
 # ============================================================================
 # INFRASTRUCTURE DEPENDENCIES
 # ============================================================================

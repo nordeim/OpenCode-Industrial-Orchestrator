@@ -18,6 +18,7 @@ from .routers import (
     tasks_router,
     contexts_router,
     external_agents_router,
+    fine_tuning_router,
 )
 from .websocket import websocket_router, manager as ws_manager
 from .dependencies import get_settings
@@ -145,6 +146,10 @@ def create_app() -> FastAPI:
                 "name": "WebSocket",
                 "description": "Real-time event subscriptions via WebSocket",
             },
+            {
+                "name": "Fine-Tuning",
+                "description": "LLM fine-tuning pipeline management",
+            },
         ],
     )
     
@@ -166,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(external_agents_router) # Prefix is already defined in the router
     app.include_router(tasks_router, prefix="/api/v1")
     app.include_router(contexts_router, prefix="/api/v1")
+    app.include_router(fine_tuning_router)
     
     # Register WebSocket router
     app.include_router(websocket_router)

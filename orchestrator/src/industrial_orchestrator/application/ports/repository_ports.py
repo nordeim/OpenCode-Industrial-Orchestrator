@@ -436,3 +436,29 @@ class TaskRepositoryPort(ABC):
     ) -> None:
         """Add task dependency."""
         pass
+
+
+class FineTuningRepositoryPort(ABC):
+    """
+    Fine-tuning job persistence operations.
+    """
+    
+    @abstractmethod
+    async def save(self, job: Any) -> Any:  # FineTuningJob
+        """Persist fine-tuning job."""
+        pass
+    
+    @abstractmethod
+    async def get_by_id(self, job_id: UUID) -> Optional[Any]:
+        """Retrieve job by ID."""
+        pass
+    
+    @abstractmethod
+    async def find_by_status(self, status: Any) -> List[Any]:
+        """Find jobs by status."""
+        pass
+    
+    @abstractmethod
+    async def get_active_jobs(self) -> List[Any]:
+        """Retrieve all currently running or queued jobs."""
+        pass

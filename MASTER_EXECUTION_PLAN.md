@@ -1,17 +1,16 @@
 # MASTER EXECUTION PLAN — OpenCode Industrial Orchestrator
 
-> **Document Version**: 2.4
+> **Document Version**: 2.6
 > **Created**: 2026-02-04
-> **Status**: Phase 3.1 Complete (External Agent Protocol Fully Integrated)
+> **Status**: Phase 3.2 In Progress (Backend Infrastructure Complete)
 
 ---
 
 ## Executive Summary
 
-The **OpenCode Industrial Orchestrator** has been upgraded with **External Agent Protocol (EAP)** capabilities.
-- **Backend**: Standardized JSON/gRPC interface for agent communication with 100% test coverage.
-- **Frontend**: "Industrial Brutalist" Marketplace UI for browsing and registering external agents.
-- **Resilience**: Adaptive routing between internal and external execution units.
+The **OpenCode Industrial Orchestrator** now features an autonomous **LLM Fine-Tuning Pipeline**.
+- **EAP Integration**: Phase 3.1 is 100% complete.
+- **Fine-Tuning Pipeline**: Backend orchestration, dataset curation, and training provider integration (Ports & Adapters) are fully implemented and verified.
 
 ### Current Progress
 
@@ -22,32 +21,31 @@ The **OpenCode Industrial Orchestrator** has been upgraded with **External Agent
 | 2.3 | Dashboard & Visualization | ✅ Complete | 100% |
 | 2.4 | Production Hardening | ✅ Complete | 100% |
 | 3.1 | Agent Marketplace & EAP | ✅ Complete | 100% |
-| 3.2 | LLM Fine-Tuning Pipeline | 🗓️ Planned | 0% |
+| 3.2 | LLM Fine-Tuning Pipeline | 🔄 In Progress | 70% |
 
 ---
 
-## Phase 3.0: Advanced Capabilities (Completed & Next)
+## Phase 3.0: Advanced Capabilities (Current)
 
-### 3.1 — Agent Marketplace & External Integration (DONE)
+### 3.2 — LLM Fine-Tuning Pipeline
 
 **Deliverables:**
-- **External Agent Protocol (EAP):** Standardized interface for autonomous units.
-    - ✅ ADR 001 established.
-    - ✅ Backend API (/register, /heartbeat) implemented.
-    - ✅ `EAPAgentAdapter` for outbound HTTP execution.
-- **Marketplace UI:** "Control Room" dashboard for agents.
-    - ✅ Browse agents with real-time status.
-    - ✅ Connect external agents via secure token handshake.
-    - ✅ Diagnostic view for individual agent units.
-
-### 3.2 — LLM Fine-Tuning Pipeline (NEXT)
-
-Create a feedback loop where session data improves agent performance.
-
-**Key Deliverables:**
-- **Dataset Curator:** Automate extraction of high-quality session logs.
-- **Fine-tuning Service:** Async jobs to fine-tune models (LoRA/QLoRA).
-- **Model Registry:** Versioning for fine-tuned agent models.
+- **Domain Layer:** 
+    - ✅ `FineTuningJob` Entity & lifecycle state machine.
+    - ✅ `ModelVersion` & `TrainingParameters` Value Objects.
+- **Dataset Curator:** 
+    - ✅ `DatasetCuratorService` for filtering high-quality logs (JSONL export).
+- **Fine-Tuning Service:** 
+    - ✅ Job management and orchestration logic.
+    - ✅ Status polling and progress tracking.
+- **Infrastructure:**
+    - ✅ `FineTuningJobModel` (SQLAlchemy).
+    - ✅ `TrainingProviderPort` abstraction.
+    - ✅ `SimulatedTrainingProvider` implementation.
+- **API:**
+    - ✅ REST endpoints for job lifecycle and status polling.
+- **Remaining:**
+    - 🔲 Model Registry & Training UI.
 
 ---
 
@@ -55,9 +53,9 @@ Create a feedback loop where session data improves agent performance.
 
 | Component | Check | Result |
 |:----------|:------|:-------|
-| **Backend** | Unit/Integration Tests | **Pass** (324 tests) |
-| **Frontend** | Production Build | **Pass** |
-| **EAP Flow** | Registration Handshake | **Verified** |
+| **Backend** | Pipeline Integration Test | **Pass** |
+| **Backend** | Dataset Curation | **Verified** |
+| **Provider** | Async Training Simulation | **Verified** |
 
 ---
 
