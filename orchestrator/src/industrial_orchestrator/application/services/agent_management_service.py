@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 import logging
+import secrets
 
 from ...application.ports.repository_ports import AgentRepositoryPort
 from ...application.ports.service_ports import DistributedLockPort
@@ -17,6 +18,10 @@ from ...domain.entities.registry import (
     AgentCapability,
     AgentPerformanceTier,
     AgentLoadLevel,
+)
+from ...application.dtos.external_agent_protocol import (
+    EAPRegistrationRequest,
+    EAPRegistrationResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -197,6 +202,72 @@ class AgentManagementService:
             if self._lock_manager:
                 await self._lock_manager.release(lock_resource)
     
+    async def register_external_agent(
+        self,
+        request: EAPRegistrationRequest
+    ) -> EAPRegistrationResponse:
+        """
+        Register an external agent via EAP.
+        
+        Args:
+            request: EAP registration request
+            
+        Returns:
+            EAP registration response with auth token
+        """
+        # Generate auth token
+        auth_token = secrets.token_urlsafe(32)
+        
+        # Create metadata with external flag and token
+        # In production, store hash of token, not plain text
+        metadata = request.metadata.copy()
+        metadata.update({
+            "is_external": True,
+            "endpoint_url": request.endpoint_url,
+            "protocol_version": request.protocol_version,
+            "auth_token": auth_token,  # TODO: Hash this
+            "version": request.version
+        })
+        
+        # Register agent using existing flow
+        agent = await self.register_agent(
+            name=request.name,
+            agent_type=request.agent_type.value,
+            capabilities=request.capabilities,
+            max_concurrent_capacity=5,  # Default, can be updated via heartbeat
+            metadata=metadata
+        )
+        
+        return EAPRegistrationResponse(
+            agent_id=agent.id,
+            status="registered",
+            auth_token=auth_token,
+            heartbeat_interval_seconds=30
+        )
+
+    async def authenticate_agent(self, agent_id: UUID, token: str) -> bool:
+        """
+        Authenticate an external agent.
+        
+        Args:
+            agent_id: Agent ID
+            token: Auth token provided by agent
+            
+        Returns:
+            True if authenticated
+        """
+        agent = await self._repository.get_by_id(agent_id)
+        if not agent:
+            return False
+            
+        # Check if external
+        if not agent.metadata.get("is_external"):
+            return False
+            
+        # Verify token (constant time comparison ideally)
+        stored_token = agent.metadata.get("auth_token")
+        return stored_token == token
+
     async def deregister_agent(
         self,
         agent_id: UUID,

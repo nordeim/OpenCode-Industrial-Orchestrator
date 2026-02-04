@@ -17,6 +17,7 @@ from .routers import (
     agents_router,
     tasks_router,
     contexts_router,
+    external_agents_router,
 )
 from .websocket import websocket_router, manager as ws_manager
 from .dependencies import get_settings
@@ -162,6 +163,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(sessions_router, prefix="/api/v1")
     app.include_router(agents_router, prefix="/api/v1")
+    app.include_router(external_agents_router) # Prefix is already defined in the router
     app.include_router(tasks_router, prefix="/api/v1")
     app.include_router(contexts_router, prefix="/api/v1")
     

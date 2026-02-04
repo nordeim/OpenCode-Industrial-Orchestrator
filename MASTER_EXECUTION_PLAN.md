@@ -1,8 +1,8 @@
 # MASTER EXECUTION PLAN — OpenCode Industrial Orchestrator
 
-> **Document Version**: 2.1  
+> **Document Version**: 2.2  
 > **Created**: 2026-02-04  
-> **Status**: Phase 3.1 In Progress
+> **Status**: Phase 3.1 In Progress (Backend API Complete)
 
 ---
 
@@ -21,7 +21,7 @@ The **OpenCode Industrial Orchestrator** core system is **feature complete** and
 | 2.2 | Multi-Agent Intelligence | ✅ Complete | 100% |
 | 2.3 | Dashboard & Visualization | ✅ Complete | 100% |
 | 2.4 | Production Hardening | ✅ Complete | 100% |
-| 3.1 | Agent Marketplace & EAP | 🔄 In Progress | 20% |
+| 3.1 | Agent Marketplace & EAP | 🔄 In Progress | 50% |
 
 ---
 
@@ -37,8 +37,13 @@ Enable the orchestrator to dynamically load agents from external sources (e.g., 
 - **External Agent Protocol (EAP):** Standardized JSON/gRPC interface for agent communication.
     - ✅ ADR 001 Created
     - ✅ DTOs Implemented (`external_agent_protocol.py`)
+    - ✅ Service Logic (`register_external_agent`, `authenticate_agent`)
+    - ✅ API Endpoints (`/register`, `/heartbeat`)
 - **Plugin System:** Dynamic loading of agent adapters.
+    - 🔲 `EAPAgentAdapter` (Infrastructure) - *Next Step*
+    - 🔲 Task Dispatch Logic
 - **Marketplace UI:** Dashboard section to browse and install agents.
+    - 🔲 Frontend Pages
 
 ### 3.2 — LLM Fine-Tuning Pipeline
 
@@ -66,7 +71,7 @@ Support multiple teams/organizations on a single instance.
 
 | Component | Check | Result |
 |:----------|:------|:-------|
-| **Backend** | Unit/Integration Tests | **Pass** (321 tests) |
+| **Backend** | Unit/Integration Tests | **Pass** (324 tests) |
 | **Backend** | Startup Import Check | **Pass** |
 | **Frontend** | Type Check | **Pass** |
 | **Frontend** | Production Build | **Pass** |
