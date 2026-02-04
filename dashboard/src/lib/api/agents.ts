@@ -12,6 +12,8 @@ import type {
     RegisterAgentRequest,
     AgentPerformanceSummary,
     AgentCapability,
+    EAPRegistrationRequest,
+    EAPRegistrationResponse,
 } from "./types";
 
 // Query keys
@@ -81,6 +83,23 @@ export function useRegisterAgent() {
     return useMutation({
         mutationFn: async (data: RegisterAgentRequest) => {
             return api.post<Agent>("/api/v1/agents/register", data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: agentKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: agentKeys.performance() });
+        },
+    });
+}
+
+/**
+ * Register external agent mutation (EAP)
+ */
+export function useRegisterExternalAgent() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: EAPRegistrationRequest) => {
+            return api.post<EAPRegistrationResponse>("/api/v1/agents/external/register", data);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: agentKeys.lists() });

@@ -109,6 +109,23 @@ export interface RegisterAgentRequest {
     max_concurrent_tasks?: number;
 }
 
+export interface EAPRegistrationRequest {
+    protocol_version: string;
+    name: string;
+    version: string;
+    agent_type: string;
+    capabilities: string[];
+    endpoint_url?: string;
+    metadata: Record<string, unknown>;
+}
+
+export interface EAPRegistrationResponse {
+    agent_id: string;
+    status: string;
+    auth_token: string;
+    heartbeat_interval_seconds: number;
+}
+
 export interface AgentListResponse {
     items: Agent[];
     total: number;

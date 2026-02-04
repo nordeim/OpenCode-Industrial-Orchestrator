@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Phase_2.4_Complete-brightgreen?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/Tests-321_Passing-success?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Status-Phase_3.1_Complete-brightgreen?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/Tests-329_Passing-success?style=flat-square" alt="Tests"/>
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/Architecture-Hexagonal-7B4EA8?style=flat-square" alt="Architecture"/>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"/>
@@ -32,6 +32,7 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 | **Lost Context** | Shared execution context with conflict detection |
 | **Task Complexity** | Intelligent decomposition using proven templates |
 | **Blind Debugging** | "Glass Box" monitoring with real-time WebSocket updates |
+| **Vendor Lock-in** | **External Agent Protocol (EAP)** for language-agnostic plugins |
 | **Infrastructure Fragility** | Distributed locking, circuit breakers, graceful degradation |
 
 ---
@@ -46,7 +47,7 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 - **Agent Registry** — Dynamic registration and discovery
 - **Capability Routing** — Match tasks to specialist agents
 - **Performance Tiers** — Promote/demote based on success
-- **Load Balancing** — Prevent overloading any single agent
+- **EAP v1.0** — Connect external agents via JSON/HTTP
 
 </td>
 <td width="50%">
@@ -66,13 +67,13 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 - **Distributed Locking** — Fair queues with TTL
 - **Circuit Breakers** — Fail fast, recover smart
 - **Optimistic Locking** — Concurrent session safety
-- **Soft Deletion** — Recovery from accidents
+- **EAP Handshake** — Secure token-based agent registration
 
 </td>
 <td width="50%">
 
 ### 👁️ Glass Box Monitoring
-- **Session State Machine** — Rigid, validated transitions
+- **Marketplace UI** — "Control Room" for agent units
 - **Real-time WebSocket** — Subscribe to session events
 - **Execution Metrics** — Track duration, tokens, quality
 - **Checkpoint Recovery** — Resume from last known state
@@ -100,6 +101,7 @@ graph LR
         Services -->|Persist| PG[(PostgreSQL)]
         Services -->|Coordinate| Redis[(Redis)]
         Services -->|Delegate| OpenCode[OpenCode API]
+        Services -->|EAP| ExtAgents[🌐 External Agents]
     end
     
     OpenCode --> Agents[🤖 Specialized Agents]
@@ -114,9 +116,9 @@ graph LR
 | Layer | Purpose | Examples |
 |:------|:--------|:---------|
 | **Domain** | Pure business logic, no I/O | `SessionEntity`, `TaskEntity`, `AgentRegistry` |
-| **Application** | Orchestration, use cases | `SessionService`, `TaskDecompositionService` |
-| **Infrastructure** | External adapters | `SessionRepository`, `DistributedLock` |
-| **Presentation** | Entry points | REST API, WebSocket, CLI |
+| **Application** | Orchestration, use cases | `SessionService`, `ExternalAgentPort` |
+| **Infrastructure** | External adapters | `SessionRepository`, `EAPAgentAdapter` |
+| **Presentation** | Entry points | REST API, WebSocket, Marketplace UI |
 
 ---
 
@@ -143,7 +145,7 @@ poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reloa
 
 ### 3. Run Tests
 ```bash
-poetry run pytest  # 321 tests
+poetry run pytest  # 329 tests
 ```
 
 ### 4. Start Dashboard (Optional)
@@ -166,9 +168,12 @@ GET    /api/v1/sessions/{id}         Get session
 POST   /api/v1/sessions/{id}/start   Start execution
 POST   /api/v1/sessions/{id}/complete Mark complete
 
-POST   /api/v1/agents                Register agent
-GET    /api/v1/agents                List agents
+POST   /api/v1/agents                Register internal agent
+GET    /api/v1/agents                List all agents
 POST   /api/v1/agents/route          Route task to agent
+
+POST   /api/v1/agents/external/register Register external agent (EAP)
+POST   /api/v1/agents/external/{id}/heartbeat Send agent heartbeat
 
 POST   /api/v1/tasks                 Create task
 POST   /api/v1/tasks/{id}/decompose  Decompose into subtasks
@@ -198,19 +203,20 @@ opencode-industrial-orchestrator/
 │   │   │   └── exceptions/           # Domain errors
 │   │   ├── application/              # ⚙️ Services
 │   │   │   ├── services/             # Session, Agent, Context, Task
-│   │   │   ├── ports/                # Abstract interfaces
-│   │   │   └── dtos/                 # Request/Response objects
+│   │   │   ├── ports/                # Abstract interfaces (ExternalAgentPort)
+│   │   │   └── dtos/                 # EAP Protocol DTOs
 │   │   ├── infrastructure/           # 🔌 Adapters
 │   │   │   ├── repositories/         # PostgreSQL, Redis
-│   │   │   └── locking/              # Distributed locks
+│   │   │   ├── locking/              # Distributed locks
+│   │   │   └── adapters/             # OpenCodeClient, EAPAgentAdapter
 │   │   └── presentation/             # 🖥️ Entry Points
-│   │       ├── api/                  # FastAPI routers
+│   │       ├── api/                  # FastAPI routers (External Agents API)
 │   │       └── websocket/            # Real-time events
-│   ├── tests/                        # 321 unit & integration tests
+│   ├── tests/                        # 329 unit & integration tests
 │   └── alembic/                      # Database migrations
 │
 ├── dashboard/                        # Next.js Frontend
-│   └── src/                          # React components
+│   └── src/                          # Marketplace UI & Components
 │
 └── infrastructure/                   # Docker & Monitoring
 ```
@@ -228,8 +234,8 @@ We practice **Test-Driven Development (TDD)** religiously.
 | Task Entity | 53 |
 | Context Entity | 39 |
 | Task Decomposition Service | 24 |
-| Integration & Infrastructure | ~109 |
-| **Total** | **321** |
+| Integration & Infrastructure | ~117 |
+| **Total** | **329** |
 
 ```bash
 # Run all tests
@@ -290,6 +296,9 @@ poetry run pytest
 - [x] **Phase 2.2** — Multi-Agent Intelligence (212 tests ✅)
 - [x] **Phase 2.3** — Dashboard & Visualization ("Glass Box" Interface ✅)
 - [x] **Phase 2.4** — Production Hardening (Kubernetes, CI/CD, Observability ✅)
+- [x] **Phase 3.1** — Agent Marketplace (EAP Integration ✅)
+- [ ] **Phase 3.2** — LLM Fine-tuning Pipeline
+- [ ] **Phase 3.3** — Multi-Tenant Isolation
 
 ---
 
