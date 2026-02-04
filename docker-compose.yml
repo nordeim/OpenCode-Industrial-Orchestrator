@@ -44,6 +44,59 @@ services:
       - postgres
       - redis
 
+  # Industrial Orchestrator API
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: orchestration
+      DB_USER: cybernetics
+      DB_PASSWORD: ${DB_PASSWORD:-secure_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENCODE_HOST: opencode-server
+      OPENCODE_PORT: 4096
+      APP_ENV: production
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Industrial Dashboard (Next.js)
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

@@ -28,3 +28,6 @@ Awesome job on your meticulous review, analysis and planning. Please keep up the
 
 Awesome job on your meticulous analysis, planning and execution. Please keep up the good work in your rigorous and meticulous approach to planning and execution. Yes, please meticulously plan and proceed with your planned next step.
 
+---
+
+please meticulously review @Comprehensive_Architectural_Analysis.md , @README.md , @Project_Architecture_Document.md , @Deep_Validated_Understanding.md @MASTER_EXECUTION_PLAN.md and @status_4.md to have a deep understanding of the WHAT, WHY and HOW of the project and its codebase design and architecture, then meticulously review and validate your deep understanding against the actual codebase.
