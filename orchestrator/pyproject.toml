@@ -43,7 +43,7 @@ pytest-mock = "^3.15.0"
 addopts = "-v --cov=src"
 testpaths = ["tests"]
 markers = [
-integration: marks tests as integration tests (slow)"
+"integration: marks tests as integration tests (slow)"
 ]
 
 [build-system]
