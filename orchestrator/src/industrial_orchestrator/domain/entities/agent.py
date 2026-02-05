@@ -41,6 +41,7 @@ class AgentCapability(str, Enum):
     # Implementation
     CODE_GENERATION = "code_generation"
     TEST_GENERATION = "test_generation"
+    TESTING = "testing"
     DOCUMENTATION = "documentation"
     REFACTORING = "refactoring"
     
@@ -52,6 +53,7 @@ class AgentCapability(str, Enum):
     
     # Problem Solving
     DEBUGGING = "debugging"
+    BUG_FIXING = "bug_fixing"
     TROUBLESHOOTING = "troubleshooting"
     ROOT_CAUSE_ANALYSIS = "root_cause_analysis"
     OPTIMIZATION = "optimization"
@@ -73,6 +75,8 @@ class AgentPerformanceTier(str, Enum):
     """Performance classification based on historical success"""
     ELITE = "elite"          # > 95% success rate, exceptional quality
     ADVANCED = "advanced"    # 85-95% success rate, high quality
+    PREMIUM = "premium"      # High performance tier
+    STANDARD = "standard"    # Default starting tier
     COMPETENT = "competent"  # 70-85% success rate, reliable
     TRAINEE = "trainee"      # < 70% success rate, learning
     DEGRADED = "degraded"    # Performance issues detected
@@ -81,6 +85,7 @@ class AgentPerformanceTier(str, Enum):
 class AgentLoadLevel(str, Enum):
     """Current workload classification"""
     IDLE = "idle"            # 0-20% capacity utilized
+    LOW = "idle"             # Alias for IDLE
     OPTIMAL = "optimal"      # 20-70% capacity utilized
     HIGH = "high"            # 70-90% capacity utilized
     CRITICAL = "critical"    # > 90% capacity utilized

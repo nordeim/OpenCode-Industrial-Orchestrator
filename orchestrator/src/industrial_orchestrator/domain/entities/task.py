@@ -368,6 +368,7 @@ class TaskEntity(BaseModel):
             
             for i, component in enumerate(components):
                 subtask = TaskEntity(
+                    tenant_id=self.tenant_id,
                     session_id=self.session_id,
                     parent_task_id=self.id,
                     title=component,
@@ -401,6 +402,7 @@ class TaskEntity(BaseModel):
             
             for i, phase in enumerate(phases):
                 subtask = TaskEntity(
+                    tenant_id=self.tenant_id,
                     session_id=self.session_id,
                     parent_task_id=self.id,
                     title=f"{self.title} - {phase}",

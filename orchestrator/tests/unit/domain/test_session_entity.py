@@ -21,6 +21,7 @@ class TestSessionEntityCreation:
     def test_create_minimal_session(self):
         """Test creating session with minimal required fields"""
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="CYBERNETIC EXECUTION SESSION",
             initial_prompt="Implement resilient authentication system"
         )
@@ -31,14 +32,16 @@ class TestSessionEntityCreation:
         assert session.session_type == SessionType.EXECUTION
         assert session.priority == SessionPriority.MEDIUM
         assert session.created_at is not None
-    
+
     def test_create_full_session(self):
         """Test creating session with all fields"""
         session_id = uuid4()
+        tenant_id = uuid4()
         created_at = datetime.now(timezone.utc)
-        
+    
         session = SessionEntity(
             id=session_id,
+            tenant_id=tenant_id,
             created_at=created_at,
             title="INDUSTRIAL ORCHESTRATION PIPELINE",
             description="Multi-stage code generation pipeline with validation",
@@ -83,6 +86,7 @@ class TestSessionEntityCreation:
         """Test agent configuration validation"""
         # Valid config
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="VALID AGENT TEST",
             initial_prompt="test",
             agent_config={
@@ -103,6 +107,7 @@ class TestSessionEntityCreation:
     def test_default_agent_config_when_empty(self):
         """Test agent config is empty dict by default"""
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="DEFAULT AGENT TEST",
             initial_prompt="test"
         )
@@ -435,6 +440,7 @@ class TestSessionEdgeCases:
         """Test session with extreme duration limits"""
         # Minimum duration
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="MIN DURATION TEST",
             initial_prompt="test",
             max_duration_seconds=60
@@ -443,6 +449,7 @@ class TestSessionEdgeCases:
         
         # Maximum duration
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="MAX DURATION TEST",
             initial_prompt="test",
             max_duration_seconds=86400
@@ -452,16 +459,18 @@ class TestSessionEdgeCases:
         # Below minimum (should fail validation)
         with pytest.raises(ValueError):
             SessionEntity(
+                tenant_id=uuid4(),
                 title="INVALID DURATION",
                 initial_prompt="test",
                 max_duration_seconds=59
             )
-    
+
     def test_large_prompt_handling(self):
         """Test handling of large prompts"""
         large_prompt = "A" * 10000  # Maximum allowed
         
         session = SessionEntity(
+            tenant_id=uuid4(),
             title="LARGE PROMPT TEST",
             initial_prompt=large_prompt
         )
@@ -470,6 +479,7 @@ class TestSessionEdgeCases:
         # Exceeds maximum (should fail validation)
         with pytest.raises(ValueError):
             SessionEntity(
+                tenant_id=uuid4(),
                 title="TOO LARGE PROMPT",
                 initial_prompt="A" * 10001
             )

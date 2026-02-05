@@ -3,7 +3,7 @@ INDUSTRIAL CONTEXT SERVICE
 Orchestrates context creation, sharing, and lifecycle management.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 import logging
@@ -20,6 +20,7 @@ from ...domain.exceptions.context_exceptions import (
     ContextScopeMismatchError,
     ContextAccessDeniedError,
 )
+from ..context import get_current_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -87,16 +88,22 @@ class ContextService:
         if scope == ContextScope.AGENT and not agent_id:
             raise ValueError("AGENT scope requires agent_id")
         
+        # Multi-tenant: Resolve tenant context
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            raise ValueError("Tenant context required for context creation")
+
         # Create context entity
         context = ContextEntity(
             id=uuid4(),
+            tenant_id=tenant_id,
             session_id=session_id,
             agent_id=agent_id,
             scope=scope,
             data=initial_data or {},
             version=1,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
             created_by=created_by,
             metadata=metadata or {}
         )
@@ -262,7 +269,7 @@ class ContextService:
                 cloned = source.clone()
                 cloned.session_id = target_session_id
                 cloned.metadata["shared_from"] = str(source_session_id)
-                cloned.metadata["shared_at"] = datetime.utcnow().isoformat()
+                cloned.metadata["shared_at"] = datetime.now(timezone.utc).isoformat()
                 await self._repository.store(cloned)
                 target_context = cloned
         
@@ -393,9 +400,7 @@ class ContextService:
     
     async def get_global_contexts(self) -> List[ContextEntity]:
         """Get all global contexts."""
-        # This would query the global contexts index
-        # For now, placeholder that returns empty list
-        return []
+        return await self._repository.retrieve_global()
     
     async def get_session_context_summary(
         self,

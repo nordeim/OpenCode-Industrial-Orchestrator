@@ -35,10 +35,10 @@ def mock_agent_repo():
     repo.register = AsyncMock()
     repo.deregister = AsyncMock(return_value=True)
     repo.get_by_id = AsyncMock(return_value=None)
-    repo.find_by_capabilities = AsyncMock(return_value=[])
+    repo.find_by_capability = AsyncMock(return_value=[])
     repo.find_available = AsyncMock(return_value=[])
     repo.update_heartbeat = AsyncMock(return_value=True)
-    repo.update_performance_metrics = AsyncMock(return_value=True)
+    repo.update_metrics = AsyncMock(return_value=True)
     repo.cleanup_stale_agents = AsyncMock(return_value=0)
     repo.get_agent_stats = AsyncMock(return_value={"total": 0})
     return repo
@@ -47,9 +47,9 @@ def mock_agent_repo():
 @pytest.fixture
 def mock_lock_manager():
     """Create mock distributed lock."""
-    lock = MagicMock()
-    lock.acquire = MagicMock(return_value=True)
-    lock.release = MagicMock(return_value=True)
+    lock = AsyncMock()
+    lock.acquire = AsyncMock(return_value=True)
+    lock.release = AsyncMock(return_value=True)
     return lock
 
 
@@ -67,15 +67,16 @@ def sample_registered_agent():
     """Create sample registered agent."""
     return RegisteredAgent(
         id=uuid4(),
+        tenant_id=uuid4(),
         name="AGENT-TEST-001",
         agent_type="IMPLEMENTATION",
         capabilities=[AgentCapability.CODE_GENERATION, AgentCapability.TESTING],
         max_concurrent_capacity=5,
-        current_load=0,
+        current_tasks=0,
         performance_tier=AgentPerformanceTier.STANDARD,
         load_level=AgentLoadLevel.LOW,
         preferred_technologies=["python", "typescript"],
-        registered_at=datetime.now(timezone.utc),
+        last_heartbeat=datetime.now(timezone.utc),
     )
 
 
@@ -115,35 +116,37 @@ class TestAgentRegistration:
     @pytest.mark.asyncio
     async def test_register_agent_success(self, agent_service, mock_agent_repo):
         """Test successful agent registration."""
+        tenant_id = uuid4()
         agent_data = {
             "name": "AGENT-NEW-001",
             "agent_type": "IMPLEMENTATION",
             "capabilities": [AgentCapability.CODE_GENERATION],
             "max_concurrent_capacity": 5,
         }
-        
+    
         mock_agent_repo.register.return_value = MagicMock(
             id=uuid4(),
             name=agent_data["name"],
         )
-        
-        result = await agent_service.register_agent(**agent_data)
-        
+    
+        with patch('src.industrial_orchestrator.application.services.agent_management_service.get_current_tenant_id', return_value=tenant_id):
+            result = await agent_service.register_agent(**agent_data)
         assert result is not None
         mock_agent_repo.register.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_register_agent_with_technologies(self, agent_service, mock_agent_repo):
         """Test agent registration with preferred technologies."""
+        tenant_id = uuid4()
         mock_agent_repo.register.return_value = MagicMock(id=uuid4())
-        
-        result = await agent_service.register_agent(
-            name="AGENT-TECH-001",
-            agent_type="SPECIALIST",
-            capabilities=[AgentCapability.CODE_GENERATION],
-            preferred_technologies=["rust", "go", "python"],
-        )
-        
+    
+        with patch('src.industrial_orchestrator.application.services.agent_management_service.get_current_tenant_id', return_value=tenant_id):
+            result = await agent_service.register_agent(
+                name="AGENT-TECH-001",
+                agent_type="SPECIALIST",
+                capabilities=[AgentCapability.CODE_GENERATION],
+                preferred_technologies=["rust", "go", "python"],
+            )
         assert result is not None
 
     @pytest.mark.asyncio
@@ -181,9 +184,10 @@ class TestTaskRouting:
     async def test_route_task_to_capable_agent(self, agent_service, mock_agent_repo, sample_registered_agent):
         """Test routing task to agent with required capabilities."""
         required_caps = [AgentCapability.CODE_GENERATION]
-        mock_agent_repo.find_by_capabilities.return_value = [sample_registered_agent]
+        mock_agent_repo.find_by_capability.return_value = [sample_registered_agent]
         
         result = await agent_service.route_task(
+            task_description="Implement feature X",
             required_capabilities=required_caps,
         )
         
@@ -194,13 +198,13 @@ class TestTaskRouting:
     @pytest.mark.asyncio
     async def test_route_task_no_capable_agents(self, agent_service, mock_agent_repo):
         """Test routing when no agents have required capabilities."""
-        mock_agent_repo.find_by_capabilities.return_value = []
-        
-        result = await agent_service.route_task(
-            required_capabilities=[AgentCapability.SECURITY_AUDIT],
-        )
-        
-        assert result is None
+        mock_agent_repo.find_by_capability.return_value = []
+    
+        with pytest.raises(ValueError, match="No available agents"):
+            await agent_service.route_task(
+                task_description="Security audit",
+                required_capabilities=[AgentCapability.SECURITY_AUDIT],
+            )
 
     @pytest.mark.asyncio
     async def test_route_task_prefers_higher_tier(self, agent_service, mock_agent_repo, sample_registered_agent):
@@ -210,18 +214,20 @@ class TestTaskRouting:
         
         premium_agent = RegisteredAgent(
             id=uuid4(),
+            tenant_id=standard_agent.tenant_id,
             name="AGENT-PREMIUM-001",
             agent_type="IMPLEMENTATION",
             capabilities=[AgentCapability.CODE_GENERATION],
             max_concurrent_capacity=10,
             performance_tier=AgentPerformanceTier.PREMIUM,
             load_level=AgentLoadLevel.LOW,
-            registered_at=datetime.now(timezone.utc),
+            last_heartbeat=datetime.now(timezone.utc),
         )
-        
-        mock_agent_repo.find_by_capabilities.return_value = [standard_agent, premium_agent]
+    
+        mock_agent_repo.find_by_capability.return_value = [standard_agent, premium_agent]
         
         result = await agent_service.route_task(
+            task_description="High-priority task",
             required_capabilities=[AgentCapability.CODE_GENERATION],
         )
         
@@ -237,18 +243,20 @@ class TestTaskRouting:
         
         available_agent = RegisteredAgent(
             id=uuid4(),
+            tenant_id=sample_registered_agent.tenant_id,
             name="AGENT-AVAIL-001",
             agent_type="IMPLEMENTATION",
             capabilities=[AgentCapability.CODE_GENERATION],
             max_concurrent_capacity=5,
             performance_tier=AgentPerformanceTier.STANDARD,
             load_level=AgentLoadLevel.LOW,
-            registered_at=datetime.now(timezone.utc),
+            last_heartbeat=datetime.now(timezone.utc),
         )
         
-        mock_agent_repo.find_by_capabilities.return_value = [overloaded_agent, available_agent]
+        mock_agent_repo.find_by_capability.return_value = [overloaded_agent, available_agent]
         
         result = await agent_service.route_task(
+            task_description="Task for available agent",
             required_capabilities=[AgentCapability.CODE_GENERATION],
         )
         
@@ -259,31 +267,35 @@ class TestTaskRouting:
     @pytest.mark.asyncio
     async def test_route_task_with_preferred_agent_type(self, agent_service, mock_agent_repo):
         """Test routing with preferred agent type."""
+        tenant_id = uuid4()
         impl_agent = RegisteredAgent(
             id=uuid4(),
+            tenant_id=tenant_id,
             name="AGENT-IMPL-001",
             agent_type="IMPLEMENTATION",
             capabilities=[AgentCapability.CODE_GENERATION],
             max_concurrent_capacity=5,
             performance_tier=AgentPerformanceTier.STANDARD,
             load_level=AgentLoadLevel.LOW,
-            registered_at=datetime.now(timezone.utc),
+            last_heartbeat=datetime.now(timezone.utc),
         )
-        
+    
         debug_agent = RegisteredAgent(
             id=uuid4(),
+            tenant_id=tenant_id,
             name="AGENT-DEBUG-001",
             agent_type="DEBUGGER",
             capabilities=[AgentCapability.CODE_GENERATION],
             max_concurrent_capacity=5,
             performance_tier=AgentPerformanceTier.STANDARD,
             load_level=AgentLoadLevel.LOW,
-            registered_at=datetime.now(timezone.utc),
+            last_heartbeat=datetime.now(timezone.utc),
         )
-        
-        mock_agent_repo.find_by_capabilities.return_value = [impl_agent, debug_agent]
-        
+    
+        mock_agent_repo.find_by_capability.return_value = [impl_agent, debug_agent]
+    
         result = await agent_service.route_task(
+            task_description="Debug critical bug",
             required_capabilities=[AgentCapability.CODE_GENERATION],
             preferred_agent_type="DEBUGGER",
         )
@@ -313,8 +325,8 @@ class TestPerformanceTracking:
             agent_id,
             task_execution_result_success,
         )
-        
-        mock_agent_repo.update_performance_metrics.assert_called_once()
+    
+        mock_agent_repo.update_metrics.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_update_performance_on_failure(
@@ -329,8 +341,8 @@ class TestPerformanceTracking:
             agent_id,
             task_execution_result_failure,
         )
-        
-        mock_agent_repo.update_performance_metrics.assert_called_once()
+    
+        mock_agent_repo.update_metrics.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_agent_summary(self, agent_service, mock_agent_repo, sample_registered_agent):
@@ -393,11 +405,13 @@ class TestAgentHealth:
         """Test processing agent heartbeat."""
         agent_id = sample_registered_agent.id
         mock_agent_repo.get_by_id.return_value = sample_registered_agent
-        
+        # Register in local registry so update_heartbeat succeeds
+        agent_service._local_registry.register(sample_registered_agent)
+    
         result = await agent_service.heartbeat(agent_id)
         
         assert result is True
-        mock_agent_repo.update_heartbeat.assert_called_once_with(agent_id)
+        mock_agent_repo.heartbeat.assert_called_once_with(agent_id)
 
     @pytest.mark.asyncio
     async def test_heartbeat_nonexistent_agent(self, agent_service, mock_agent_repo):

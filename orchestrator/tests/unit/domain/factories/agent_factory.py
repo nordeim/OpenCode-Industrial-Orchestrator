@@ -80,6 +80,7 @@ class AgentEntityFactory(factory.Factory):
 
     # Identity
     id = LazyFunction(uuid4)
+    tenant_id = LazyFunction(uuid4)
     name = factory.LazyFunction(
         lambda: f"Nexus-{fake.word().capitalize()}-{fake.pyint(min_value=100, max_value=999)}"
     )

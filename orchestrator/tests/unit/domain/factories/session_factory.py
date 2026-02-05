@@ -135,6 +135,8 @@ class SessionEntityFactory(factory.Factory):
         model = SessionEntity
     
     # Identity
+    id = factory.LazyFunction(uuid4)
+    tenant_id = factory.LazyFunction(uuid4)
     title = factory.LazyFunction(lambda: IndustrialFaker().industrial_title())
     description = factory.Faker('paragraph', nb_sentences=3)
     session_type = factory.Faker('session_type')

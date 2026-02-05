@@ -2,7 +2,7 @@
 
 > **Single Source of Truth** for AI coding agents and human developers working on the OpenCode Industrial Orchestrator.  
 > **Last Updated:** February 4, 2026  
-> **Status:** Phase 2.4 Complete — Production Ready
+> **Status:** Phase 3.3 Complete — Multi-Tenant Enterprise Platform
 
 ---
 
@@ -21,6 +21,8 @@ The **OpenCode Industrial Orchestrator** is a production-grade system designed t
 | **Context Management** | Shared execution context with conflict detection and version control |
 | **Distributed Locking** | Redis-based fair locking for parallel session coordination |
 | **Glass Box Monitoring** | Real-time WebSocket updates, Prometheus metrics, structured JSON logging |
+| **Fine-Tuning Pipeline** | Autonomous dataset curation and model training for agent specialization |
+| **Multi-Tenant Isolation** | Strict logical separation of data and resources with per-tenant quotas |
 
 ### Current Status
 
@@ -30,7 +32,10 @@ The **OpenCode Industrial Orchestrator** is a production-grade system designed t
 | 2.2 | Multi-Agent Intelligence | ✅ Complete | 212 |
 | 2.3 | Dashboard & Visualization | ✅ Complete | — |
 | 2.4 | Production Hardening | ✅ Complete | 109 |
-| **Total** | | | **321** |
+| 3.1 | Agent Marketplace (EAP) | ✅ Complete | 8 |
+| 3.2 | Fine-Tuning Pipeline | ✅ Complete | 6 |
+| 3.3 | Multi-Tenant Isolation | ✅ Complete | 2 |
+| **Total** | | | **337** |
 
 ---
 
@@ -89,26 +94,26 @@ The system strictly follows Hexagonal Architecture with clear dependency directi
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Presentation Layer (API, WebSocket, CLI)                       │
-│  ├── FastAPI routers (sessions, agents, tasks, contexts)        │
+│  ├── FastAPI routers (sessions, agents, fine-tuning, tenants)   │
 │  ├── WebSocket connection manager                               │
-│  └── Middleware (CORS, metrics, error handling)                 │
+│  └── Middleware (Tenant Context, Metrics, Error Handling)       │
 ├─────────────────────────────────────────────────────────────────┤
 │  Application Layer (Services)                                   │
-│  ├── SessionService — Session lifecycle management              │
-│  ├── AgentManagementService — Registration & routing            │
-│  ├── TaskDecompositionService — Task breakdown & templates      │
-│  └── ContextService — Context creation & sharing                │
+│  ├── SessionService — Quota enforcement & lifecycle             │
+│  ├── AgentManagementService — EAP integration & routing         │
+│  ├── FineTuningService — Dataset curation & training            │
+│  └── TenantService — Organization & Quota management            │
 ├─────────────────────────────────────────────────────────────────┤
 │  Domain Layer (Pure Business Logic)                             │
-│  ├── Entities: SessionEntity, AgentEntity, TaskEntity, Context  │
-│  ├── Value Objects: SessionStatus, ExecutionMetrics             │
-│  ├── Events: SessionCreated, SessionStatusChanged               │
-│  └── Exceptions: Domain-specific errors                         │
+│  ├── Entities: Session, Agent, Task, Context, Tenant, FTJob     │
+│  ├── Value Objects: SessionStatus, ModelVersion                 │
+│  ├── Events: SessionCreated, FTJobStarted, StatusChanged        │
+│  └── Exceptions: Domain-specific errors (QuotaExceeded)         │
 ├─────────────────────────────────────────────────────────────────┤
 │  Infrastructure Layer (Adapters)                                │
-│  ├── Repositories: PostgreSQL (sessions), Redis (agents)        │
+│  ├── Repositories: PG Isolated Repositories, Redis Agents       │
 │  ├── Locking: Redis-based distributed locks                     │
-│  └── Adapters: OpenCode client with circuit breaker             │
+│  └── Adapters: EAP Adapter, Training Providers                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,24 +126,25 @@ opencode-industrial-orchestrator/
 ├── orchestrator/                     # Python Backend
 │   ├── src/industrial_orchestrator/
 │   │   ├── domain/                   # 🧠 Pure business logic
-│   │   │   ├── entities/             # Session, Agent, Task, Context, Registry
-│   │   │   ├── value_objects/        # SessionStatus, ExecutionMetrics
+│   │   │   ├── entities/             # Session, Agent, Task, FTJob, Tenant
+│   │   │   ├── value_objects/        # SessionStatus, ModelVersion
 │   │   │   ├── events/               # Domain events
 │   │   │   └── exceptions/           # Domain errors
 │   │   ├── application/              # ⚙️ Orchestration services
-│   │   │   ├── services/             # Session, Agent, Context, Task services
+│   │   │   ├── services/             # Session, Agent, FT, Tenant services
+│   │   │   ├── context.py            # Global tenant context (contextvars)
 │   │   │   ├── ports/                # Repository & service interfaces (ABCs)
 │   │   │   └── dtos/                 # Request/Response DTOs
 │   │   ├── infrastructure/           # 🔌 Adapters
-│   │   │   ├── repositories/         # PostgreSQL, Redis storage
+│   │   │   ├── repositories/         # Isolated PostgreSQL, Redis storage
 │   │   │   ├── locking/              # Distributed locks
-│   │   │   ├── adapters/             # OpenCode client
+│   │   │   ├── adapters/             # EAP client, Training providers
 │   │   │   ├── database/             # SQLAlchemy models
 │   │   │   └── config/               # Database & Redis config
 │   │   └── presentation/             # 🖥️ Entry points
 │   │       ├── api/                  # FastAPI app, routers, middleware
 │   │       └── websocket/            # WebSocket handlers
-│   ├── tests/                        # 321 tests (unit/integration/acceptance)
+│   ├── tests/                        # 337 tests (unit/integration/acceptance)
 │   ├── alembic/                      # Database migrations
 │   ├── pyproject.toml                # Poetry dependencies
 │   └── Dockerfile                    # Multi-stage production build
@@ -147,17 +153,16 @@ opencode-industrial-orchestrator/
 │   ├── src/
 │   │   ├── app/                      # Next.js App Router
 │   │   │   ├── page.tsx              # Dashboard home
+│   │   │   ├── fine-tuning/          # Model registry & training
 │   │   │   ├── sessions/             # Session list & detail
-│   │   │   ├── agents/               # Agent registry view
-│   │   │   ├── tasks/                # Task management
-│   │   │   ├── layout.tsx            # Root layout
+│   │   │   ├── agents/               # Marketplace view
 │   │   │   └── globals.css           # Tailwind v4 configuration
 │   │   ├── components/               # React components
 │   │   │   ├── ui/                   # Reusable UI components
-│   │   │   ├── layout/               # Layout components (sidebar)
+│   │   │   ├── layout/               # Sidebar with Team Selector
 │   │   │   └── session/              # Session-specific components
 │   │   └── lib/                      # Utilities & API clients
-│   │       ├── api/                  # REST API clients
+│   │       ├── api/                  # Tenant-aware API client
 │   │       └── websocket/            # WebSocket provider
 │   ├── package.json
 │   └── Dockerfile
@@ -229,7 +234,6 @@ npm run dev
 # - http://localhost:3000
 
 # Production build
-# Note: Keep NODE_ENV commented out in .env to avoid build conflicts
 export NODE_ENV=production
 npm run build
 ```
@@ -245,12 +249,11 @@ npm run build
 ```
 tests/
 ├── unit/                    # Fast, isolated tests with mocked dependencies
-│   ├── domain/             # Entity tests (Session, Agent, Task, Context)
+│   ├── domain/             # Entity tests (Session, Agent, Task, FT, Tenant)
 │   │   └── factories/      # Factory Boy factories for test data
 │   └── application/        # Service tests with mock repositories
-│       └── mocks/          # Mock ports and repositories
 ├── integration/            # Tests with real PostgreSQL & Redis
-│   ├── repositories/       # Repository integration tests
+│   ├── repositories/       # Isolated repository integration tests
 │   ├── infrastructure/     # Database & Redis integration
 │   └── locking/            # Distributed lock tests
 └── acceptance/             # End-to-end API tests
@@ -261,7 +264,7 @@ tests/
 ```bash
 cd orchestrator
 
-# Run all tests
+# Run all tests (337 passing)
 poetry run pytest
 
 # Run unit tests only
@@ -272,39 +275,18 @@ poetry run pytest tests/integration -v
 
 # Run with coverage
 poetry run pytest --cov=src --cov-report=html
-
-# Run specific test file
-poetry run pytest tests/unit/domain/test_session_entity.py -v
 ```
 
 ### Test Coverage Summary
 
 | Component | Tests |
 |:----------|------:|
-| Session Entity | 42 |
-| Agent Entity | 54 |
-| Task Entity | 53 |
+| Session & Task Entities | 95 |
+| Agent & Registry | 54 |
 | Context Entity | 39 |
-| Task Decomposition Service | 24 |
-| Integration & Infrastructure | ~109 |
-| **Total** | **321** |
-
-### Test Factories
-
-Use Factory Boy for test data generation:
-
-```python
-from tests.unit.domain.factories.session_factory import (
-    SessionEntityFactory,
-    create_session_with_dependencies,
-)
-
-# Create a session
-session = SessionEntityFactory()
-
-# Create with specific attributes
-session = SessionEntityFactory(title="IND-Test-001", status=SessionStatus.RUNNING)
-```
+| Fine-Tuning & Tenant Pipeline | 15 |
+| Integration & Infrastructure | ~134 |
+| **Total** | **337** |
 
 ---
 
@@ -314,143 +296,43 @@ session = SessionEntityFactory(title="IND-Test-001", status=SessionStatus.RUNNIN
 
 **Tools:** `black`, `isort`, `flake8`, `mypy`
 
-```bash
-# Format code
-poetry run black .
-poetry run isort .
-
-# Lint
-poetry run flake8 src tests
-
-# Type check
-poetry run mypy src
-```
-
 **Key Conventions:**
 
-1. **Hexagonal Import Rules:**
+1. **Multi-Tenancy Context:**
    ```python
-   # ✅ CORRECT: Domain never imports from Infrastructure
-   from domain.entities.session import SessionEntity
-   from application.services.session_service import SessionService
+   from application.context import get_current_tenant_id
    
-   # ❌ WRONG: Domain importing from outside
-   from infrastructure.repositories.session_repository import SessionRepository  # NEVER
+   tenant_id = get_current_tenant_id() # Thread-safe context extraction
    ```
 
-2. **Pydantic V2 Style:**
-   ```python
-   from pydantic import BaseModel, Field, field_validator, ConfigDict
-   
-   class MyEntity(BaseModel):
-       model_config = ConfigDict(validate_assignment=True)
-       
-       @field_validator('field_name')
-       @classmethod
-       def validate_field(cls, v: str) -> str:
-           return v.strip()
-   ```
+2. **Isolated Repositories:**
+   Repositories automatically filter by `tenant_id` based on the context. Never write queries that bypass this unless for global analytics.
 
-3. **Naming Conventions:**
-   - Sessions: `IND-*` pattern (e.g., `IND-Session-001`)
-   - Agents: `AGENT-*` pattern (e.g., `AGENT-ARCHITECT-001`)
-   - Entities: PascalCase (e.g., `SessionEntity`)
-   - Services: PascalCase + Service suffix (e.g., `SessionService`)
+3. **Pydantic V2 Style:**
+   Use `@field_validator`, `ConfigDict`, and `model_validator` (V2 style).
 
 4. **State Management:**
-   ```python
-   # Use validated state transitions
-   session.transition_to(SessionStatus.RUNNING)
-   
-   # Never set status directly
-   session.status = SessionStatus.RUNNING  # ❌ Wrong
-   ```
+   Use `session.transition_to(SessionStatus.PENDING)` for retries. Valid from `FAILED` or `TIMEOUT`.
 
 ### TypeScript (Frontend)
 
-**Tools:** ESLint, TypeScript strict mode
+1. **Tenant Header:**
+   The API client (`client.ts`) must include the `X-Tenant-ID` header in all requests.
 
-```bash
-cd dashboard
-
-# Lint
-npm run lint
-
-# Type check
-npx tsc --noEmit
-```
-
-**Key Conventions:**
-
-1. **Prefer `interface` over `type`** (except unions/intersections):
-   ```typescript
-   // ✅ Preferred
-   interface Session {
-     id: string;
-     title: string;
-   }
-   
-   // For unions
-   type Status = 'pending' | 'running' | 'completed';
-   ```
-
-2. **No `any` — use `unknown` instead:**
-   ```typescript
-   // ✅ Correct
-   function process(data: unknown): void {
-     if (typeof data === 'string') {
-       // ...
-     }
-   }
-   ```
-
-3. **Tailwind CSS v4:**
-   ```css
-   /* globals.css - CSS-first configuration */
-   @import "tailwindcss";
-   
-   @theme {
-     --color-brand-500: oklch(0.84 0.18 117.33);
-   }
-   ```
+2. **Tailwind CSS v4:**
+   Uses CSS-first configuration via `globals.css`.
 
 ---
 
 ## 7. Database & Migrations
 
-### Alembic Commands
+Every primary table includes a `tenant_id` column with indexed foreign keys. Repositories enforce this filter globally.
 
-```bash
-cd orchestrator
-
-# Create new migration
-poetry run alembic revision --autogenerate -m "description"
-
-# Run migrations
-poetry run alembic upgrade head
-
-# Downgrade
-poetry run alembic downgrade -1
-
-# View current version
-poetry run alembic current
-```
-
-### Database Configuration
-
-Environment variables (from `.env`):
-
-```bash
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=orchestration
-DB_USER=cybernetics
-DB_PASSWORD=industrial_secure_001
-```
-
-Connection string format:
-```
-postgresql://cybernetics:industrial_secure_001@postgres:5432/orchestration
+```mermaid
+erDiagram
+    TENANTS ||--o{ SESSIONS : owns
+    TENANTS ||--o{ AGENTS : manages
+    TENANTS ||--o{ FINE_TUNING_JOBS : executes
 ```
 
 ---
@@ -460,47 +342,17 @@ postgresql://cybernetics:industrial_secure_001@postgres:5432/orchestration
 ### REST Endpoints
 
 ```
-Sessions:
+Multi-Tenancy (Requires X-Tenant-ID Header):
   POST   /api/v1/sessions              Create session
-  GET    /api/v1/sessions              List sessions (paginated)
-  GET    /api/v1/sessions/{id}         Get session details
-  POST   /api/v1/sessions/{id}/start   Start execution
-  POST   /api/v1/sessions/{id}/complete Mark complete
-  POST   /api/v1/sessions/{id}/fail    Mark failed
-  DELETE /api/v1/sessions/{id}         Soft delete
-
-Agents:
-  POST   /api/v1/agents                Register agent
-  GET    /api/v1/agents                List agents
-  GET    /api/v1/agents/{id}           Get agent details
-  DELETE /api/v1/agents/{id}           Deregister
-  POST   /api/v1/agents/route          Route task to best agent
-  POST   /api/v1/agents/{id}/heartbeat Keep-alive
-
-Tasks:
-  POST   /api/v1/tasks                 Create task
-  GET    /api/v1/tasks/{id}            Get task details
-  POST   /api/v1/tasks/{id}/decompose  Decompose into subtasks
-  GET    /api/v1/tasks/{id}/dependencies Get dependency graph
-
-Contexts:
-  POST   /api/v1/contexts              Create context
-  GET    /api/v1/contexts/{id}         Get context
-  PATCH  /api/v1/contexts/{id}         Update context
-  POST   /api/v1/contexts/merge        Merge contexts
-
-Health:
-  GET    /health                       Health check
-  GET    /health/ready                 Readiness (DB + Redis)
-  GET    /health/live                  Liveness
-  GET    /metrics                      Prometheus metrics
-```
-
-### WebSocket Endpoints
-
-```
-WS     /ws/sessions                  All session events
-WS     /ws/sessions/{id}             Specific session events
+  GET    /api/v1/sessions              List sessions (isolated)
+  
+Fine-Tuning:
+  POST   /api/v1/fine-tuning/jobs      Configure training
+  POST   /api/v1/fine-tuning/jobs/poll Trigger status sync
+  
+Agents (EAP):
+  POST   /api/v1/agents/external/register Register EAP agent
+  POST   /api/v1/agents/external/{id}/heartbeat Sync load status
 ```
 
 ---
@@ -508,164 +360,29 @@ WS     /ws/sessions/{id}             Specific session events
 ## 9. Domain Entities
 
 ### SessionEntity
+- **Tenant Isolated:** Mandatory `tenant_id`.
+- **Recoverable:** `FAILED` -> `PENDING` transition allowed if checkpoints exist and retry count < 3.
 
-**States:** PENDING → QUEUED → RUNNING → COMPLETED
-
-```
-Valid Transitions:
-  PENDING → RUNNING, QUEUED, CANCELLED
-  QUEUED → RUNNING, CANCELLED
-  RUNNING → COMPLETED, FAILED, PAUSED, TIMEOUT
-  PAUSED → RUNNING, CANCELLED
-  FAILED → PENDING (retry)
-```
-
-**Key Methods:**
-- `transition_to(new_status)` — Validated state transition
-- `start_execution()` — PENDING → RUNNING
-- `complete_with_result(result)` — Mark complete
-- `fail_with_error(error)` — Mark failed with context
-- `add_checkpoint(data)` — Save recovery point
-- `calculate_health_score()` → float (0.0 to 1.0)
-
-### AgentEntity
-
-**Types:** `ARCHITECT`, `IMPLEMENTER`, `REVIEWER`, `DEBUGGER`, `INTEGRATOR`, `ORCHESTRATOR`, `ANALYST`, `OPTIMIZER`
-
-**Capabilities:** `REQUIREMENTS_ANALYSIS`, `SYSTEM_DESIGN`, `CODE_GENERATION`, `CODE_REVIEW`, `DEBUGGING`, `TESTING`, `DOCUMENTATION`, `SECURITY_AUDIT`, etc.
-
-### TaskEntity
-
-**Key Methods:**
-- `decompose(strategy, max_depth)` — Break into subtasks
-- `add_dependency(task_id, type)` — Add dependency
-- `get_dependency_graph()` → NetworkX DiGraph
-- `can_start()` → bool (dependencies satisfied?)
-
----
-
-## 10. CI/CD Pipeline
-
-### GitHub Actions Workflows
-
-**CI Pipeline (`.github/workflows/ci.yaml`):**
-
-1. **Lint Backend:** black, isort, flake8, mypy
-2. **Lint Frontend:** ESLint, TypeScript check
-3. **Test Backend:** Unit + Integration tests with coverage
-4. **Build Docker Images:** Multi-stage builds for API and Dashboard
-
-**CD Pipeline (`.github/workflows/cd.yaml`):**
-
-- Deploy to Kubernetes cluster
-- Rolling updates with health checks
-
-### Docker Images
-
-```bash
-# Build API image
-docker build -t orchestrator-api ./orchestrator
-
-# Build Dashboard image
-docker build -t orchestrator-dashboard ./dashboard
-```
-
----
-
-## 11. Configuration & Environment
-
-### Environment Variables (`.env`)
-
-```bash
-# Application
-NODE_ENV=development
-PYTHONPATH=/app
-LOG_LEVEL=INFO
-DEBUG=true
-
-# Database
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=orchestration
-DB_USER=cybernetics
-DB_PASSWORD=industrial_secure_001
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# OpenCode Server
-OPENCODE_HOST=opencode-server
-OPENCODE_PORT=4096
-OPENCODE_PASSWORD=industrial_secure
-
-# Orchestrator Settings
-MAX_CONCURRENT_SESSIONS=25
-SESSION_TIMEOUT_SECONDS=3600
-CHECKPOINT_INTERVAL_SECONDS=300
-MAX_RETRY_ATTEMPTS=3
-
-# Security
-JWT_SECRET_KEY=industrial_cybernetics_secret_key_001
-ENCRYPTION_KEY=32_byte_secure_key_for_aes_256
-```
+### FineTuningJob
+- **Lifecycle:** `PENDING` → `QUEUED` → `RUNNING` → `COMPLETED`/`FAILED`.
+- **Versioning:** Semantic versioning via `ModelVersion` value object.
 
 ---
 
 ## 12. Known Issues & Gotchas
 
-### Python
-
-1. **Pydantic V2 Validators:** Use `@field_validator` (not `@validator`)
-2. **State Transitions:** PENDING → RUNNING is valid for immediate execution
-3. **Checkpoint Sequence:** Increments from last checkpoint, not list length
-4. **Factory Faker:** Use `random.choice()` not `factory.Faker().generate()` in hooks
-
-### Frontend
-
-1. **Tailwind v4:** Uses `@import "tailwindcss"` not `@tailwind` directives
-2. **Node ENV:** Keep `NODE_ENV` commented out in `.env` for dev builds
-3. **WebSocket:** Connection auto-reconnects with exponential backoff
-
-### General
-
-1. **Hexagonal Imports:** Always check dependency direction
-2. **Database Migrations:** Never modify schema manually — use Alembic
-3. **Redis Keys:** Use prefixes for namespacing (`session:*`, `agent:*`)
+1. **Asyncpg SSL:** Use `ssl=true` instead of `sslmode=require` in connection strings for `asyncpg` compatibility.
+2. **Distributed Lock release:** Lua script requires raw values, not JSON objects, for comparison.
+3. **Pydantic Validation:** `User` entity requires `email-validator` for schema collection.
 
 ---
 
-## 13. Security Considerations
+## 14. Future Roadmap (Phase 4.0)
 
-- All containers run as non-root users
-- Secrets managed via environment variables (never committed)
-- JWT tokens for authentication
-- Distributed locking prevents race conditions
-- Soft deletion for audit trails
-- Circuit breakers on external API calls
+- [ ] **Global Scaling:** Multi-region event synchronization.
+- [ ] **Billing:** Metering and advanced analytics per tenant.
+- [ ] **A/B Testing:** Automated evaluation of fine-tuned vs base models.
 
 ---
 
-## 14. Future Roadmap (Phase 3.0)
-
-- [ ] **Agent Marketplace:** External agent integration (JSON/gRPC)
-- [ ] **LLM Fine-Tuning:** Feedback loops for model improvement
-- [ ] **Multi-Tenancy:** RBAC and tenant isolation
-
----
-
-## 15. Key Documentation References
-
-| Document | Purpose |
-|:---------|:--------|
-| `README.md` | Project overview for users/contributors |
-| `CLAUDE.md` | Detailed agent briefing |
-| `Project_Architecture_Document.md` | Technical architecture reference |
-| `MASTER_EXECUTION_PLAN.md` | Implementation roadmap |
-| `User_Guide.md` | End-user documentation |
-| `docs/API.md` | API documentation |
-| `docs/adr/` | Architecture Decision Records |
-
----
-
-> **Remember:** This is an industrial-grade system. Every state transition is validated, every error is logged, and every metric is tracked. Build with resilience in mind.
+> **Remember:** This is an industrial-grade enterprise system. Isolation is absolute, performance is tracked, and every model improvement is versioned. Build for scale.

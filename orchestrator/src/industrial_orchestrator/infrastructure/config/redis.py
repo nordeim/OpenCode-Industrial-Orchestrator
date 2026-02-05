@@ -367,15 +367,14 @@ class IndustrialRedisClient:
         """Set JSON-serialized value with expiration"""
         serialized = self._serialize_value(value)
         
-        args = [key, serialized]
-        if expire_seconds:
-            args.extend(["EX", expire_seconds])
-        if nx:
-            args.append("NX")
-        if xx:
-            args.append("XX")
-        
-        result = await self._execute_with_retry(RedisCommand.SET, *args)
+        result = await self._execute_with_retry(
+            RedisCommand.SET,
+            key,
+            serialized,
+            ex=expire_seconds,
+            nx=nx,
+            xx=xx
+        )
         return bool(result)
     
     async def get_json(self, key: str) -> Any:
@@ -417,14 +416,11 @@ class IndustrialRedisClient:
         Uses SET with NX and EX for atomic lock acquisition
         """
         for attempt in range(retry_count):
-            result = await self.set_json(
+            result = await self._execute_with_retry(
+                RedisCommand.SET,
                 lock_key,
-                {
-                    "value": lock_value,
-                    "acquired_at": datetime.now(timezone.utc).isoformat(),
-                    "timeout": timeout_seconds,
-                },
-                expire_seconds=timeout_seconds,
+                lock_value,
+                ex=timeout_seconds,
                 nx=True
             )
             

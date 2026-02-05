@@ -9,10 +9,10 @@ The **OpenCode Industrial Orchestrator** is a production-grade system designed t
 ### Architecture
 The system follows a strict **Hexagonal Architecture (Ports & Adapters)** to ensure isolation of the core domain logic from infrastructure concerns.
 
-*   **Domain (`domain/`)**: Pure business logic (Entities, Value Objects, Events). Zero external dependencies.
-*   **Application (`application/`)**: Orchestration logic (Services, Use Cases).
-*   **Infrastructure (`infrastructure/`)**: Adapters for databases (PostgreSQL), caching (Redis), and external APIs.
-*   **Presentation (`presentation/`)**: Entry points (FastAPI routers, WebSocket handlers).
+*   **Domain (`domain/`)**: Pure business logic (Entities, Value Objects, Events). Zero external dependencies. Includes `Tenant`, `User`, `FineTuningJob`, and `Session`.
+*   **Application (`application/`)**: Orchestration logic (Services, Use Cases). Enforces quotas, handles agent routing, and manages the fine-tuning pipeline.
+*   **Infrastructure (`infrastructure/`)**: Adapters for databases (PostgreSQL), caching (Redis), and external APIs (EAP, Training Providers). Implements automatic tenant isolation in repositories.
+*   **Presentation (`presentation/`)**: Entry points (FastAPI routers, WebSocket handlers). Includes multi-tenant context middleware.
 
 ### Technology Stack
 *   **Backend**: Python 3.11+, FastAPI, Uvicorn.
@@ -78,7 +78,7 @@ docker-compose up -d postgres redis opencode-server
 **Test-Driven Development (TDD) is mandatory.**
 
 ### Backend Tests
-The project has a comprehensive test suite (321+ tests) covering unit and integration scenarios.
+The project has a comprehensive test suite (**337** tests) covering unit and integration scenarios.
 
 *   **Run All Tests:**
     ```bash
@@ -105,19 +105,23 @@ The project has a comprehensive test suite (321+ tests) covering unit and integr
 1.  **Hexagonal Rules:**
     *   **Dependencies point inward.** Domain layer must NEVER import from Application or Infrastructure.
     *   Infrastructure adapters implement interfaces defined in Application ports.
-2.  **Pydantic V2:** Use `ConfigDict` and `@field_validator` (V2 style). Avoid deprecated V1 methods.
-3.  **Naming:**
+2.  **Multi-Tenancy:** 
+    *   All entities must be associated with a `tenant_id`.
+    *   Repositories must enforce tenant isolation using the `get_current_tenant_id` context.
+    *   API requests must include the `X-Tenant-ID` header.
+3.  **Pydantic V2:** Use `ConfigDict` and `@field_validator` (V2 style). Avoid deprecated V1 methods.
+4.  **Naming:**
     *   Sessions: `IND-*`
     *   Agents: `AGENT-*`
-4.  **State Management:** Strict state machine enforcement for Sessions and Tasks (12 states).
+5.  **State Management:** Strict state machine enforcement for Sessions and Tasks (12 states). Allowed retry transitions: `FAILED -> PENDING`, `TIMEOUT -> PENDING`.
 
 ---
 
 ## Status & Roadmap
 
-**Current Status:** Phase 2.4 (Production Hardening) is **COMPLETE**. The core system is production-ready.
+**Current Status:** Phase 3.3 (Multi-Tenant Isolation) is **COMPLETE**. The system is now an enterprise-grade multi-tenant platform.
 
-**Next Steps (Phase 3.0):**
-1.  **Agent Marketplace:** External agent integration (JSON/gRPC).
-2.  **LLM Fine-Tuning:** Feedback loops for model improvement.
-3.  **Multi-Tenancy:** RBAC and tenant isolation.
+**Next Steps (Phase 4.0):**
+1.  **Global Scaling:** Multi-region event synchronization.
+2.  **Billing & Usage:** Metering and advanced analytics.
+3.  **A/B Testing:** Automated evaluation of fine-tuned models.

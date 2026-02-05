@@ -4,58 +4,13 @@ Domain entity for managing agent registration and capability-based discovery.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Set
 from uuid import UUID
 from threading import RLock
 from enum import Enum
 
-# Import domain types (use relative imports in production)
-# For now, we define minimal versions to avoid circular imports
-
-
-class AgentCapability(str, Enum):
-    """Agent capabilities enumeration."""
-    REQUIREMENTS_ANALYSIS = "requirements_analysis"
-    SYSTEM_DESIGN = "system_design"
-    ARCHITECTURE_PLANNING = "architecture_planning"
-    BACKEND_DEVELOPMENT = "backend_development"
-    FRONTEND_DEVELOPMENT = "frontend_development"
-    DATABASE_DESIGN = "database_design"
-    API_DEVELOPMENT = "api_development"
-    CODE_REVIEW = "code_review"
-    TESTING = "testing"
-    SECURITY_AUDIT = "security_audit"
-    PERFORMANCE_OPTIMIZATION = "performance_optimization"
-    BUG_FIXING = "bug_fixing"
-    ROOT_CAUSE_ANALYSIS = "root_cause_analysis"
-    ERROR_HANDLING = "error_handling"
-    CI_CD = "ci_cd"
-    DEPLOYMENT = "deployment"
-    MONITORING = "monitoring"
-    SCALING = "scaling"
-    WORKFLOW_ORCHESTRATION = "workflow_orchestration"
-    RESOURCE_ALLOCATION = "resource_allocation"
-    CONFLICT_RESOLUTION = "conflict_resolution"
-    PROGRESS_TRACKING = "progress_tracking"
-
-
-class AgentPerformanceTier(str, Enum):
-    """Agent performance tiers based on metrics."""
-    ELITE = "elite"
-    ADVANCED = "advanced"
-    COMPETENT = "competent"
-    TRAINEE = "trainee"
-    DEGRADED = "degraded"
-
-
-class AgentLoadLevel(str, Enum):
-    """Agent workload levels."""
-    IDLE = "idle"
-    OPTIMAL = "optimal"
-    HIGH = "high"
-    CRITICAL = "critical"
-    OVERLOADED = "overloaded"
+from .agent import AgentCapability, AgentPerformanceTier, AgentLoadLevel
 
 
 @dataclass
@@ -78,20 +33,23 @@ class RegisteredAgent:
     Represents minimal data needed for capability-based routing.
     """
     id: UUID
+    tenant_id: UUID
     name: str
+    agent_type: str
     capabilities: Set[AgentCapability]
+    preferred_technologies: List[str] = field(default_factory=list)
     performance_tier: AgentPerformanceTier = AgentPerformanceTier.COMPETENT
     load_level: AgentLoadLevel = AgentLoadLevel.IDLE
     current_tasks: int = 0
-    max_concurrent_tasks: int = 5
-    last_heartbeat: datetime = field(default_factory=datetime.utcnow)
+    max_concurrent_capacity: int = 5
+    last_heartbeat: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict = field(default_factory=dict)
     
     @property
     def is_available(self) -> bool:
         """Check if agent can accept new tasks."""
         return (
-            self.current_tasks < self.max_concurrent_tasks
+            self.current_tasks < self.max_concurrent_capacity
             and self.load_level != AgentLoadLevel.OVERLOADED
             and self.performance_tier != AgentPerformanceTier.DEGRADED
         )
@@ -99,9 +57,9 @@ class RegisteredAgent:
     @property
     def utilization(self) -> float:
         """Calculate current utilization percentage."""
-        if self.max_concurrent_tasks == 0:
+        if self.max_concurrent_capacity == 0:
             return 100.0
-        return (self.current_tasks / self.max_concurrent_tasks) * 100
+        return (self.current_tasks / self.max_concurrent_capacity) * 100
     
     def has_capability(self, capability: AgentCapability) -> bool:
         """Check if agent has a specific capability."""

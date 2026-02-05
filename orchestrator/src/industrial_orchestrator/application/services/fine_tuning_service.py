@@ -13,6 +13,7 @@ from ...domain.value_objects.fine_tuning_status import FineTuningStatus
 from ...application.ports.repository_ports import FineTuningRepositoryPort
 from ...application.ports.service_ports import TrainingProviderPort
 from .dataset_curator_service import DatasetCuratorService
+from ..context import get_current_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,12 @@ class FineTuningService:
         parameters: Optional[TrainingParameters] = None
     ) -> FineTuningJob:
         """Create a new fine-tuning job entry"""
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            raise ValueError("Tenant context required for fine-tuning")
+
         job = FineTuningJob(
+            tenant_id=tenant_id,
             base_model=base_model,
             target_model_name=target_model_name,
             parameters=parameters or TrainingParameters()

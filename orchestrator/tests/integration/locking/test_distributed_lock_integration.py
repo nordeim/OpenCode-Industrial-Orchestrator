@@ -4,9 +4,10 @@ Test distributed locking with real Redis connection.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List
 
 from src.industrial_orchestrator.infrastructure.locking.distributed_lock import (
@@ -25,7 +26,7 @@ from src.industrial_orchestrator.infrastructure.config.redis import (
 class TestIndustrialDistributedLockIntegration:
     """Integration tests for IndustrialDistributedLock"""
     
-    @pytest.fixture(autouse=True)
+    @pytest_asyncio.fixture(autouse=True)
     async def setup_and_teardown(self):
         """Setup and teardown for each test"""
         # Initialize Redis
@@ -40,7 +41,7 @@ class TestIndustrialDistributedLockIntegration:
         await shutdown_redis()
         await shutdown_lock_manager()
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def lock_manager(self):
         """Create lock manager for testing"""
         manager = LockManager()

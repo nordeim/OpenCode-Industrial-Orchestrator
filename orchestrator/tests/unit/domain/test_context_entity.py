@@ -85,7 +85,7 @@ class TestContextGetSet:
 
     def test_set_nested_key(self):
         """Test setting nested key creates hierarchy"""
-        ctx = ContextEntity(session_id=uuid4(), data={})
+        ctx = ContextEntity(tenant_id=uuid4(), session_id=uuid4(), data={})
 
         ctx.set("parent.child.grandchild", "deep")
 
@@ -187,8 +187,9 @@ class TestContextDiff:
 
     def test_diff_additions(self):
         """Test diff detects additions"""
-        ctx1 = ContextEntity(session_id=uuid4(), data={"existing": 1})
-        ctx2 = ContextEntity(session_id=uuid4(), data={"existing": 1, "added": 2})
+        tenant_id = uuid4()
+        ctx1 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"existing": 1})
+        ctx2 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"existing": 1, "added": 2})
 
         diff = ctx1.diff(ctx2)
 
@@ -197,8 +198,9 @@ class TestContextDiff:
 
     def test_diff_deletions(self):
         """Test diff detects deletions"""
-        ctx1 = ContextEntity(session_id=uuid4(), data={"existing": 1, "removed": 2})
-        ctx2 = ContextEntity(session_id=uuid4(), data={"existing": 1})
+        tenant_id = uuid4()
+        ctx1 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"existing": 1, "removed": 2})
+        ctx2 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"existing": 1})
 
         diff = ctx1.diff(ctx2)
 
@@ -207,8 +209,9 @@ class TestContextDiff:
 
     def test_diff_modifications(self):
         """Test diff detects modifications"""
-        ctx1 = ContextEntity(session_id=uuid4(), data={"key": "old"})
-        ctx2 = ContextEntity(session_id=uuid4(), data={"key": "new"})
+        tenant_id = uuid4()
+        ctx1 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"key": "old"})
+        ctx2 = ContextEntity(tenant_id=tenant_id, session_id=uuid4(), data={"key": "new"})
 
         diff = ctx1.diff(ctx2)
 
@@ -370,7 +373,7 @@ class TestContextChangeHistory:
 
     def test_history_limited(self):
         """Test history is limited to max size"""
-        ctx = ContextEntity(session_id=uuid4(), data={})
+        ctx = ContextEntity(tenant_id=uuid4(), session_id=uuid4(), data={})
         ctx._max_history = 5
 
         for i in range(10):
@@ -388,11 +391,11 @@ class TestContextScopeHandling:
 
     def test_merge_scope_promotion(self):
         """Test merged context gets most permissive scope"""
-        session_ctx = ContextEntityFactory()
-        global_ctx = ContextEntityFactory(global_scope=True)
-
+        tenant_id = uuid4()
+        session_ctx = ContextEntityFactory(tenant_id=tenant_id)
+        global_ctx = ContextEntityFactory(tenant_id=tenant_id, global_scope=True)
+    
         merged = session_ctx.merge(global_ctx)
-
         # GLOBAL is more permissive than SESSION
         assert merged.scope == ContextScope.GLOBAL
 

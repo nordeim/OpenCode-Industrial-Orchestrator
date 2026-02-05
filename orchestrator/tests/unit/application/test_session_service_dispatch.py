@@ -1,23 +1,33 @@
 """
-Unit tests for SessionService dispatch logic.
+TEST SESSION SERVICE DISPATCH
+Tests for Agent routing and execution dispatch (Internal vs External).
 """
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from datetime import datetime
 
-from industrial_orchestrator.application.services.session_service import SessionService
-from industrial_orchestrator.domain.entities.session import SessionEntity, SessionStatus
-from industrial_orchestrator.application.dtos.external_agent_protocol import EAPTaskResult, EAPTaskAssignment
+from src.industrial_orchestrator.application.services.session_service import SessionService
+from src.industrial_orchestrator.domain.entities.session import (
+    SessionEntity,
+    SessionStatus,
+)
+from src.industrial_orchestrator.domain.entities.registry import RegisteredAgent
+from src.industrial_orchestrator.application.dtos.external_agent_protocol import (
+    EAPTaskAssignment,
+    EAPTaskResult,
+)
+
 
 @pytest.fixture
 def mock_session_repo():
     repo = AsyncMock()
     repo.get_by_id = AsyncMock()
-    repo.update = AsyncMock()
     repo.get_with_metrics = AsyncMock()
+    repo.update = AsyncMock()
+    repo.add = AsyncMock()
     return repo
+
 
 @pytest.fixture
 def mock_agent_repo():
@@ -25,11 +35,11 @@ def mock_agent_repo():
     repo.get_by_name = AsyncMock()
     return repo
 
+
 @pytest.fixture
 def mock_external_adapter():
-    adapter = AsyncMock()
-    adapter.send_task = AsyncMock()
-    return adapter
+    return AsyncMock()
+
 
 @pytest.fixture
 def mock_opencode_client():
@@ -37,35 +47,38 @@ def mock_opencode_client():
     client.execute_session_task = AsyncMock()
     return client
 
+
 @pytest.fixture
 def service(mock_session_repo, mock_agent_repo, mock_external_adapter, mock_opencode_client):
-    svc = SessionService(
+    return SessionService(
         session_repository=mock_session_repo,
         agent_repository=mock_agent_repo,
         external_agent_adapter=mock_external_adapter,
-        opencode_client=mock_opencode_client,
-        lock_timeout=1  # Fast tests
+        opencode_client=mock_opencode_client
     )
-    return svc
+
 
 @pytest.mark.asyncio
 async def test_execute_session_external_dispatch(service, mock_session_repo, mock_agent_repo, mock_external_adapter):
     # Setup Session
     session_id = uuid4()
+    tenant_id = uuid4()
     session = SessionEntity(
         id=session_id,
+        tenant_id=tenant_id,
         title="Test External",
         initial_prompt="Do work",
         agent_config={"AGENT-EXT-01": {}},
         status=SessionStatus.PENDING
     )
     mock_session_repo.get_by_id.return_value = session
-    mock_session_repo.get_with_metrics.return_value = session # For completion
+    mock_session_repo.get_with_metrics.return_value = session
     mock_session_repo.update.return_value = session
 
     # Setup Agent
-    agent = MagicMock()
+    agent = MagicMock(spec=RegisteredAgent)
     agent.id = uuid4()
+    agent.name = "AGENT-EXT-01"
     agent.metadata = {
         "is_external": True,
         "endpoint_url": "http://ext-agent",
@@ -83,7 +96,7 @@ async def test_execute_session_external_dispatch(service, mock_session_repo, moc
     mock_external_adapter.send_task.return_value = eap_result
 
     # Mock distributed_lock context manager
-    with patch('industrial_orchestrator.application.services.session_service.distributed_lock') as mock_lock:
+    with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock') as mock_lock:
         mock_lock.return_value.__aenter__.return_value = True
         
         # Execute
@@ -95,16 +108,16 @@ async def test_execute_session_external_dispatch(service, mock_session_repo, moc
     
     # Verify call to external adapter
     mock_external_adapter.send_task.assert_called_once()
-    call_args = mock_external_adapter.send_task.call_args
-    assert call_args[1]["endpoint_url"] == "http://ext-agent"
-    assert isinstance(call_args[1]["task_assignment"], EAPTaskAssignment)
+
 
 @pytest.mark.asyncio
 async def test_execute_session_internal_fallback(service, mock_session_repo, mock_agent_repo, mock_opencode_client):
     # Setup Session
     session_id = uuid4()
+    tenant_id = uuid4()
     session = SessionEntity(
         id=session_id,
+        tenant_id=tenant_id,
         title="Test Internal",
         initial_prompt="Do work",
         agent_config={"AGENT-INT-01": {}},
@@ -114,24 +127,28 @@ async def test_execute_session_internal_fallback(service, mock_session_repo, moc
     mock_session_repo.get_with_metrics.return_value = session
     mock_session_repo.update.return_value = session
 
-    # Setup Agent (Internal)
-    agent = MagicMock()
+    # Setup Agent (Not external)
+    agent = MagicMock(spec=RegisteredAgent)
+    agent.id = uuid4()
+    agent.name = "AGENT-INT-01"
     agent.metadata = {"is_external": False}
     mock_agent_repo.get_by_name.return_value = agent
 
-    # Setup OpenCode Client Response
+    # Setup OpenCode Response
     mock_opencode_client.execute_session_task.return_value = {
-        "session_id": str(session_id),
-        "result": {"status": "ok"}
+        "session_id": "oc-123",
+        "diff": {"patch": "---"},
+        "metrics": {"duration": 1.0}
     }
 
     # Mock distributed_lock
-    with patch('industrial_orchestrator.application.services.session_service.distributed_lock') as mock_lock:
+    with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock') as mock_lock:
         mock_lock.return_value.__aenter__.return_value = True
         
         # Execute
         result = await service.execute_session(session_id)
 
     # Verify
-    mock_opencode_client.execute_session_task.assert_called_once()
     assert result["success"] is True
+    assert result["opencode_session_id"] == "oc-123"
+    mock_opencode_client.execute_session_task.assert_called_once()

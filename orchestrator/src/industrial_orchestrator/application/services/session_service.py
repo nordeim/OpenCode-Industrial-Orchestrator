@@ -139,7 +139,8 @@ class SessionService:
             tags=tags or [],
             metadata=metadata or {}
         )
-        
+    
+        created_session = None
         # Use distributed lock for parent session if needed
         if parent_session_id:
             lock_resource = f"session:parent:{parent_session_id}"
@@ -154,6 +155,10 @@ class SessionService:
         else:
             # Add to repository
             created_session = await self.session_repository.add(session)
+        
+        if not created_session:
+            self._logger.error(f"created_session is None. parent_session_id={parent_session_id}")
+            raise RuntimeError("Failed to create session in repository")
         
         # Publish event
         await self._publish_event(

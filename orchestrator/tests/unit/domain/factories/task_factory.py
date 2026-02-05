@@ -51,6 +51,7 @@ class TaskEntityFactory(factory.Factory):
 
     # Identity
     id = LazyFunction(uuid4)
+    tenant_id = LazyFunction(uuid4)
     session_id = LazyFunction(uuid4)
     parent_task_id = None
 

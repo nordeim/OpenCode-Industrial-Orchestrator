@@ -46,6 +46,7 @@ class TestTaskEntityCreation:
         """Test creating task with all fields"""
         session_id = uuid4()
         task = TaskEntity(
+            tenant_id=uuid4(),
             session_id=session_id,
             title="Implement authentication module",
             description="Full OAuth2 authentication with JWT tokens",
@@ -89,6 +90,7 @@ class TestTaskEntityCreation:
     def test_valid_titles_accepted(self, valid_title):
         """Test that actionable titles are accepted"""
         task = TaskEntity(
+            tenant_id=uuid4(),
             session_id=uuid4(),
             title=valid_title,
         )

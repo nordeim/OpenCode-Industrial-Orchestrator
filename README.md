@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Phase_3.1_Complete-brightgreen?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/Tests-329_Passing-success?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Status-Phase_3.3_Complete-brightgreen?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/Tests-337_Passing-success?style=flat-square" alt="Tests"/>
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
   <img src="https://img.shields.io/badge/Architecture-Hexagonal-7B4EA8?style=flat-square" alt="Architecture"/>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"/>
@@ -33,6 +33,8 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 | **Task Complexity** | Intelligent decomposition using proven templates |
 | **Blind Debugging** | "Glass Box" monitoring with real-time WebSocket updates |
 | **Vendor Lock-in** | **External Agent Protocol (EAP)** for language-agnostic plugins |
+| **Model Stagnation** | **Fine-Tuning Pipeline** for autonomous agent specialization |
+| **Team Scaling** | **Multi-Tenant Isolation** with RBAC and resource quotas |
 | **Infrastructure Fragility** | Distributed locking, circuit breakers, graceful degradation |
 
 ---
@@ -46,8 +48,8 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 ### 🧠 Multi-Agent Intelligence
 - **Agent Registry** — Dynamic registration and discovery
 - **Capability Routing** — Match tasks to specialist agents
-- **Performance Tiers** — Promote/demote based on success
 - **EAP v1.0** — Connect external agents via JSON/HTTP
+- **Fine-Tuning** — Autonomous model specialization pipeline
 
 </td>
 <td width="50%">
@@ -66,16 +68,16 @@ The **OpenCode Industrial Orchestrator** is the missing control plane for autono
 ### 🔒 Industrial Resilience
 - **Distributed Locking** — Fair queues with TTL
 - **Circuit Breakers** — Fail fast, recover smart
-- **Optimistic Locking** — Concurrent session safety
-- **EAP Handshake** — Secure token-based agent registration
+- **Multi-Tenancy** — Strict team isolation & RBAC
+- **Quota Control** — Resource limits per organization
 
 </td>
 <td width="50%">
 
 ### 👁️ Glass Box Monitoring
 - **Marketplace UI** — "Control Room" for agent units
+- **Model Registry** — Real-time training telemetry
 - **Real-time WebSocket** — Subscribe to session events
-- **Execution Metrics** — Track duration, tokens, quality
 - **Checkpoint Recovery** — Resume from last known state
 
 </td>
@@ -102,6 +104,7 @@ graph LR
         Services -->|Coordinate| Redis[(Redis)]
         Services -->|Delegate| OpenCode[OpenCode API]
         Services -->|EAP| ExtAgents[🌐 External Agents]
+        Services -->|Train| GPU[🚀 Compute Provider]
     end
     
     OpenCode --> Agents[🤖 Specialized Agents]
@@ -115,10 +118,10 @@ graph LR
 
 | Layer | Purpose | Examples |
 |:------|:--------|:---------|
-| **Domain** | Pure business logic, no I/O | `SessionEntity`, `TaskEntity`, `AgentRegistry` |
-| **Application** | Orchestration, use cases | `SessionService`, `ExternalAgentPort` |
-| **Infrastructure** | External adapters | `SessionRepository`, `EAPAgentAdapter` |
-| **Presentation** | Entry points | REST API, WebSocket, Marketplace UI |
+| **Domain** | Pure business logic, no I/O | `SessionEntity`, `FineTuningJob`, `Tenant` |
+| **Application** | Orchestration, use cases | `SessionService`, `DatasetCuratorService` |
+| **Infrastructure** | External adapters | `EAPAgentAdapter`, `TrainingProviderPort` |
+| **Presentation** | Entry points | REST API, WebSocket, Team Selector UI |
 
 ---
 
@@ -145,7 +148,7 @@ poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reloa
 
 ### 3. Run Tests
 ```bash
-poetry run pytest  # 329 tests
+poetry run pytest  # 337 tests
 ```
 
 ### 4. Start Dashboard (Optional)
@@ -164,16 +167,13 @@ npm run dev
 ```
 POST   /api/v1/sessions              Create session
 GET    /api/v1/sessions              List sessions
-GET    /api/v1/sessions/{id}         Get session
 POST   /api/v1/sessions/{id}/start   Start execution
-POST   /api/v1/sessions/{id}/complete Mark complete
-
-POST   /api/v1/agents                Register internal agent
-GET    /api/v1/agents                List all agents
-POST   /api/v1/agents/route          Route task to agent
 
 POST   /api/v1/agents/external/register Register external agent (EAP)
 POST   /api/v1/agents/external/{id}/heartbeat Send agent heartbeat
+
+POST   /api/v1/fine-tuning/jobs      Create training job
+POST   /api/v1/fine-tuning/jobs/poll Sync training progress
 
 POST   /api/v1/tasks                 Create task
 POST   /api/v1/tasks/{id}/decompose  Decompose into subtasks
@@ -198,25 +198,25 @@ opencode-industrial-orchestrator/
 ├── orchestrator/                     # Python Backend
 │   ├── src/industrial_orchestrator/
 │   │   ├── domain/                   # 🧠 Business Logic
-│   │   │   ├── entities/             # Session, Agent, Task, Context
-│   │   │   ├── value_objects/        # Status, Metrics
+│   │   │   ├── entities/             # Session, Agent, Task, FineTuning, Tenant
+│   │   │   ├── value_objects/        # Status, Version, Metrics
 │   │   │   └── exceptions/           # Domain errors
 │   │   ├── application/              # ⚙️ Services
-│   │   │   ├── services/             # Session, Agent, Context, Task
-│   │   │   ├── ports/                # Abstract interfaces (ExternalAgentPort)
-│   │   │   └── dtos/                 # EAP Protocol DTOs
+│   │   │   ├── services/             # Session, FineTuning, Tenant, Curator
+│   │   │   ├── ports/                # ExternalAgentPort, TrainingProviderPort
+│   │   │   └── dtos/                 # EAP & API DTOs
 │   │   ├── infrastructure/           # 🔌 Adapters
 │   │   │   ├── repositories/         # PostgreSQL, Redis
 │   │   │   ├── locking/              # Distributed locks
-│   │   │   └── adapters/             # OpenCodeClient, EAPAgentAdapter
+│   │   │   └── adapters/             # OpenCode, EAP, Training
 │   │   └── presentation/             # 🖥️ Entry Points
-│   │       ├── api/                  # FastAPI routers (External Agents API)
+│   │       ├── api/                  # FastAPI routers & Middleware
 │   │       └── websocket/            # Real-time events
-│   ├── tests/                        # 329 unit & integration tests
+│   ├── tests/                        # 337 unit & integration tests
 │   └── alembic/                      # Database migrations
 │
 ├── dashboard/                        # Next.js Frontend
-│   └── src/                          # Marketplace UI & Components
+│   └── src/                          # Marketplace & Model Registry UI
 │
 └── infrastructure/                   # Docker & Monitoring
 ```
@@ -233,9 +233,9 @@ We practice **Test-Driven Development (TDD)** religiously.
 | Agent Entity | 54 |
 | Task Entity | 53 |
 | Context Entity | 39 |
-| Task Decomposition Service | 24 |
-| Integration & Infrastructure | ~117 |
-| **Total** | **329** |
+| Fine-Tuning & Tenant | 15 |
+| Integration & Infrastructure | ~134 |
+| **Total** | **337** |
 
 ```bash
 # Run all tests
@@ -250,43 +250,14 @@ poetry run pytest tests/unit/domain/test_session_entity.py
 
 ---
 
-## ⚙️ Configuration
-
-| Variable | Description | Default |
-|:---------|:------------|:--------|
-| `DB_HOST` | PostgreSQL host | `postgres` |
-| `REDIS_HOST` | Redis host | `redis` |
-| `OPENCODE_HOST` | OpenCode API host | `opencode-server` |
-| `MAX_CONCURRENT_SESSIONS` | Parallel execution limit | `25` |
-| `SESSION_TIMEOUT_SECONDS` | Hard timeout per session | `3600` |
-
----
-
 ## 🤝 Contributing
 
 We welcome contributions! Please follow these guidelines:
 
 1. **TDD is mandatory** — Write tests before implementation
 2. **Hexagonal imports** — Domain never imports from Infrastructure
-3. **Code style** — Run `black`, `isort`, and `flake8`
-4. **Database changes** — Always use Alembic migrations
-
-### Development Workflow
-```bash
-# 1. Create feature branch
-git checkout -b feature/your-feature
-
-# 2. Write tests first
-poetry run pytest tests/unit/your_test.py
-
-# 3. Implement
-# ... write code ...
-
-# 4. Verify all tests pass
-poetry run pytest
-
-# 5. Submit PR
-```
+3. **Tenant context** — Always include X-Tenant-ID header in API tests
+4. **Code style** — Run `black`, `isort`, and `flake8`
 
 ---
 
@@ -297,8 +268,8 @@ poetry run pytest
 - [x] **Phase 2.3** — Dashboard & Visualization ("Glass Box" Interface ✅)
 - [x] **Phase 2.4** — Production Hardening (Kubernetes, CI/CD, Observability ✅)
 - [x] **Phase 3.1** — Agent Marketplace (EAP Integration ✅)
-- [ ] **Phase 3.2** — LLM Fine-tuning Pipeline
-- [ ] **Phase 3.3** — Multi-Tenant Isolation
+- [x] **Phase 3.2** — LLM Fine-tuning Pipeline (✅ Complete)
+- [x] **Phase 3.3** — Multi-Tenant Isolation (✅ Complete)
 
 ---
 

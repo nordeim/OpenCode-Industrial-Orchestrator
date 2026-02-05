@@ -122,14 +122,18 @@ class SessionStatus(str, Enum):
                 SessionStatus.STOPPED,    # Manually stopped
             },
             
-            # From PARTIALLY_COMPLETED (can sometimes be recovered)
-            SessionStatus.PARTIALLY_COMPLETED: {
-                SessionStatus.RUNNING,    # Retry failed sub-tasks
-                SessionStatus.COMPLETED,  # All sub-tasks eventually succeeded
+            # From FAILED (allowed for retries)
+            SessionStatus.FAILED: {
+                SessionStatus.PENDING,    # Manual or automatic retry
             },
             
-            # Terminal states - no transitions allowed
-            **{state: set() for state in SessionStatus.get_terminal_states()},
+            # From TIMEOUT (allowed for retries)
+            SessionStatus.TIMEOUT: {
+                SessionStatus.PENDING,    # Retry with increased timeout
+            },
+            
+            # Other terminal states - no transitions allowed
+            **{state: set() for state in {SessionStatus.COMPLETED, SessionStatus.PARTIALLY_COMPLETED, SessionStatus.STOPPED, SessionStatus.CANCELLED, SessionStatus.ORPHANED}},
         }
         
         return target_status in transition_map.get(self, set())

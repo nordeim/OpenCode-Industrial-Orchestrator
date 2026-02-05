@@ -4,7 +4,7 @@ Orchestrates agent lifecycle, capability routing, and performance tracking.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 import logging
@@ -23,6 +23,7 @@ from ...application.dtos.external_agent_protocol import (
     EAPRegistrationRequest,
     EAPRegistrationResponse,
 )
+from ..context import get_current_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -160,18 +161,25 @@ class AgentManagementService:
         if max_concurrent_capacity < 1 or max_concurrent_capacity > 50:
             raise ValueError("max_concurrent_capacity must be between 1 and 50")
         
+        # Multi-tenant: Resolve tenant context
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            # Fallback for system-level agents if needed, but here we enforce isolation
+            raise ValueError("Tenant context required for agent registration")
+
         # Create agent entity
         agent = RegisteredAgent(
             id=uuid4(),
+            tenant_id=tenant_id,
             name=name,
+            agent_type=agent_type,
             capabilities=set(capabilities),
             performance_tier=AgentPerformanceTier.COMPETENT,  # Start as competent
             load_level=AgentLoadLevel.IDLE,
             current_tasks=0,
-            max_concurrent_tasks=max_concurrent_capacity,
-            last_heartbeat=datetime.utcnow(),
+            max_concurrent_capacity=max_concurrent_capacity,
+            last_heartbeat=datetime.now(timezone.utc),
             metadata={
-                "agent_type": agent_type,
                 "preferred_technologies": preferred_technologies or [],
                 **(metadata or {})
             }
@@ -362,10 +370,12 @@ class AgentManagementService:
         if min_performance_tier:
             tier_order = {
                 AgentPerformanceTier.ELITE: 0,
-                AgentPerformanceTier.ADVANCED: 1,
-                AgentPerformanceTier.COMPETENT: 2,
-                AgentPerformanceTier.TRAINEE: 3,
-                AgentPerformanceTier.DEGRADED: 4,
+                AgentPerformanceTier.PREMIUM: 1,
+                AgentPerformanceTier.ADVANCED: 2,
+                AgentPerformanceTier.STANDARD: 3,
+                AgentPerformanceTier.COMPETENT: 4,
+                AgentPerformanceTier.TRAINEE: 5,
+                AgentPerformanceTier.DEGRADED: 6,
             }
             min_order = tier_order.get(min_performance_tier, 4)
             candidates = [a for a in candidates if tier_order.get(a.performance_tier, 5) <= min_order]
@@ -606,7 +616,9 @@ class AgentManagementService:
         # Performance tier score (0-1)
         tier_scores = {
             AgentPerformanceTier.ELITE: 1.0,
+            AgentPerformanceTier.PREMIUM: 0.9,
             AgentPerformanceTier.ADVANCED: 0.8,
+            AgentPerformanceTier.STANDARD: 0.7,
             AgentPerformanceTier.COMPETENT: 0.6,
             AgentPerformanceTier.TRAINEE: 0.4,
             AgentPerformanceTier.DEGRADED: 0.0,
@@ -634,10 +646,10 @@ class AgentManagementService:
         
         # Preference bonuses
         if preferred_agent_ids and agent.id in preferred_agent_ids:
-            score += 0.1
+            score += 0.2
         
-        if preferred_agent_type and agent.metadata.get("agent_type") == preferred_agent_type:
-            score += 0.05
+        if preferred_agent_type and agent.agent_type == preferred_agent_type:
+            score += 0.3
         
         return min(score, 1.0)
     

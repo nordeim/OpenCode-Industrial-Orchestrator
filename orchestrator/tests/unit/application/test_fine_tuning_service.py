@@ -3,12 +3,12 @@ UNIT TESTS - FINE-TUNING SERVICE
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from industrial_orchestrator.application.services.fine_tuning_service import FineTuningService
-from industrial_orchestrator.domain.entities.fine_tuning import FineTuningJob, TrainingMetrics
-from industrial_orchestrator.domain.value_objects.fine_tuning_status import FineTuningStatus
+from src.industrial_orchestrator.application.services.fine_tuning_service import FineTuningService
+from src.industrial_orchestrator.domain.entities.fine_tuning import FineTuningJob, TrainingMetrics
+from src.industrial_orchestrator.domain.value_objects.fine_tuning_status import FineTuningStatus
 
 @pytest.fixture
 def mock_repo():
@@ -29,16 +29,20 @@ def service(mock_repo, mock_curator):
 
 @pytest.mark.asyncio
 async def test_create_job(service, mock_repo):
-    job = await service.create_job("base-model", "target-model")
+    tenant_id = uuid4()
+    with patch('src.industrial_orchestrator.application.services.fine_tuning_service.get_current_tenant_id', return_value=tenant_id):
+        job = await service.create_job("base-model", "target-model")
     assert job.base_model == "base-model"
     assert job.target_model_name == "target-model"
     assert job.status == FineTuningStatus.PENDING
+    assert job.tenant_id == tenant_id
     mock_repo.save.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_start_pipeline_success(service, mock_repo, mock_curator):
     job_id = uuid4()
-    job = FineTuningJob(id=job_id, base_model="base", target_model_name="target")
+    tenant_id = uuid4()
+    job = FineTuningJob(id=job_id, tenant_id=tenant_id, base_model="base", target_model_name="target")
     mock_repo.get_by_id.return_value = job
     mock_curator.curate_dataset.return_value = "/path/to/dataset.jsonl"
     
@@ -51,7 +55,8 @@ async def test_start_pipeline_success(service, mock_repo, mock_curator):
 @pytest.mark.asyncio
 async def test_complete_job(service, mock_repo):
     job_id = uuid4()
-    job = FineTuningJob(id=job_id, base_model="base", target_model_name="target", status=FineTuningStatus.RUNNING)
+    tenant_id = uuid4()
+    job = FineTuningJob(id=job_id, tenant_id=tenant_id, base_model="base", target_model_name="target", status=FineTuningStatus.RUNNING)
     mock_repo.get_by_id.return_value = job
     
     metrics = TrainingMetrics(final_loss=0.1)

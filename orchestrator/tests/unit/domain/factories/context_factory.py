@@ -25,6 +25,7 @@ class ContextEntityFactory(factory.Factory):
 
     # Identity
     id = LazyFunction(uuid4)
+    tenant_id = LazyFunction(uuid4)
     session_id = LazyFunction(uuid4)
     agent_id = None
     scope = ContextScope.SESSION
@@ -39,8 +40,8 @@ class ContextEntityFactory(factory.Factory):
 
     # Version and timestamps
     version = 1
-    created_at = LazyFunction(datetime.utcnow)
-    updated_at = LazyFunction(datetime.utcnow)
+    created_at = LazyFunction(lambda: datetime.now(timezone.utc))
+    updated_at = LazyFunction(lambda: datetime.now(timezone.utc))
     created_by = "factory"
 
     # Metadata
@@ -91,10 +92,12 @@ class ContextEntityFactory(factory.Factory):
 
 def create_conflicting_contexts() -> tuple:
     """Create two contexts with conflicting values for merge testing."""
+    tenant_id = uuid4()
     session_id = uuid4()
-    base_time = datetime.utcnow()
+    base_time = datetime.now(timezone.utc)
 
     ctx1 = ContextEntity(
+        tenant_id=tenant_id,
         session_id=session_id,
         scope=ContextScope.SESSION,
         data={
@@ -107,6 +110,7 @@ def create_conflicting_contexts() -> tuple:
     )
 
     ctx2 = ContextEntity(
+        tenant_id=tenant_id,
         session_id=session_id,
         scope=ContextScope.SESSION,
         data={

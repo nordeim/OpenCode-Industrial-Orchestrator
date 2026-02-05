@@ -13,639 +13,254 @@ The **OpenCode Industrial Orchestrator** is a production-grade system designed t
 *   **Multi-Agent Intelligence:** Capability-based routing and task decomposition.
 *   **Distributed Coordination:** Fair locking and deadlock prevention for parallel execution.
 *   **Glass Box Monitoring:** Comprehensive metrics for every transition and operation.
+*   **Enterprise Multi-Tenancy**: Strict logical isolation and resource quotas per team.
 
 ### Current Implementation Status
 
-
-
 | Phase | Description | Status |
-
 |:------|:------------|:------:|
-
 | 2.1 | Foundation & Core Orchestrator | ✅ Complete |
-
 | 2.2 | Multi-Agent Intelligence | ✅ Complete |
-
 | 2.3 | Dashboard & Visualization | ✅ Complete |
-
 | 2.4 | Production Hardening | ✅ Complete |
-
 | 3.1 | Agent Marketplace & EAP | ✅ Complete |
-
-
+| 3.2 | LLM Fine-Tuning Pipeline | ✅ Complete |
+| 3.3 | Multi-Tenant Isolation | ✅ Complete |
 
 ---
-
-
 
 ## 2. System Architecture
 
-
-
 The system follows a strict **Hexagonal Architecture**, separating the core business logic from the outside world.
 
-
-
 ```mermaid
-
 graph TD
-
     subgraph "External World"
-
         User[User / CLI]
-
         OpenCode[OpenCode API]
-
         ExtAgent[🌐 External Agent]
-
+        Compute[🚀 GPU Provider]
         DB[(PostgreSQL)]
-
         Cache[(Redis)]
-
         WS[WebSocket Clients]
-
     end
-
-
 
     subgraph "Industrial Orchestrator"
-
         subgraph "Presentation Layer"
-
             API[FastAPI]
-
-            CLI[CLI Tool]
-
+            Middleware[Tenant Context]
             WSHandler[WebSocket Handler]
-
         end
-
-
 
         subgraph "Application Layer"
-
             SessionSvc[Session Service]
-
-            AgentSvc[Agent Management Service]
-
-            ContextSvc[Context Service]
-
-            TaskSvc[Task Decomposition Service]
-
+            AgentSvc[Agent Management]
+            FTSvc[Fine-Tuning Service]
+            TenantSvc[Tenant Manager]
         end
-
-
 
         subgraph "Domain Layer"
-
             Session[Session Entity]
-
             Agent[Agent Entity]
-
-            Task[Task Entity]
-
-            Context[Context Entity]
-
+            FTJob[Fine-Tuning Job]
+            Tenant[Tenant Entity]
             Registry[Agent Registry]
-
-            Status[Value Objects]
-
         end
-
-
 
         subgraph "Infrastructure Layer"
-
-            Repo[Repositories]
-
+            Repo[Auto-Isolated Repos]
             Lock[Distributed Lock]
-
-            OpenCodeAdapter[OpenCode Client]
-
-            EAPAdapter[EAP Agent Adapter]
-
+            EAPAdapter[EAP Adapter]
+            TrainAdapter[Training Adapter]
         end
-
     end
 
-
-
     User --> API
-
-    WS --> WSHandler
-
-    API --> SessionSvc
-
-    API --> AgentSvc
-
-    API --> ContextSvc
-
-    API --> TaskSvc
-
-    WSHandler --> SessionSvc
-
+    API --> Middleware
+    Middleware --> SessionSvc
     
-
     SessionSvc --> Session
-
-    AgentSvc --> Agent
-
-    AgentSvc --> Registry
-
-    ContextSvc --> Context
-
-    TaskSvc --> Task
-
-    
-
     SessionSvc --> Repo
-
-    SessionSvc --> Lock
-
-    SessionSvc --> OpenCodeAdapter
-
-    SessionSvc --> EAPAdapter
-
     
-
+    FTSvc --> FTJob
+    FTSvc --> TrainAdapter
+    TrainAdapter --> Compute
+    
     Repo --> DB
-
-    Lock --> Cache
-
-    OpenCodeAdapter --> OpenCode
-
     EAPAdapter --> ExtAgent
-
 ```
-
-
 
 ### Application Logic Flow (Execution Dispatch)
 
-
-
 ```mermaid
-
 sequenceDiagram
-
     participant API as 🔌 API Layer
-
     participant Svc as ⚙️ SessionService
-
     participant Repo as 💾 AgentRepository
-
     participant Internal as 🤖 OpenCodeClient
-
     participant External as 🌐 EAPAgentAdapter
 
-
-
     API->>Svc: execute_session(id)
-
     activate Svc
-
     
-
     Svc->>Repo: get_agent_for_session(id)
-
     Repo-->>Svc: AgentMetadata (is_external=True)
-
     
-
     alt External Agent (EAP)
-
         Svc->>External: send_task(assignment)
-
         activate External
-
         External->>External: POST /task (X-Agent-Token)
-
         External-->>Svc: EAPTaskResult
-
         deactivate External
-
     else Internal Agent
-
         Svc->>Internal: execute_session_task(entity)
-
         Internal-->>Svc: result
-
     end
-
     
-
     Svc-->>API: execution_result
-
     deactivate Svc
-
 ```
 
+### Database Schema (Isolated by Tenant)
 
-
-### Database Schema
-
-
+Every primary table includes a `tenant_id` column with indexed foreign keys to the `tenants` table. Repositories enforce this filter globally.
 
 ```mermaid
-
 erDiagram
-
+    TENANTS ||--o{ SESSIONS : owns
+    TENANTS ||--o{ AGENTS : manages
+    TENANTS ||--o{ FINE_TUNING_JOBS : executes
     SESSIONS ||--o{ SESSION_METRICS : has
-
     SESSIONS ||--o{ SESSION_CHECKPOINTS : has
 
-    SESSIONS ||--o{ SESSIONS : parent_of
-
-
+    TENANTS {
+        uuid id PK
+        string slug
+        int max_concurrent_sessions
+    }
 
     SESSIONS {
-
         uuid id PK
-
+        uuid tenant_id FK
         string title
-
         string status
-
-        string session_type
-
-        jsonb agent_config
-
-        int max_duration_seconds
-
-        timestamp created_at
-
-        timestamp deleted_at
-
     }
-
-
-
-    SESSION_METRICS {
-
-        uuid id PK
-
-        uuid session_id FK
-
-        float success_rate
-
-        float code_quality_score
-
-        int api_calls_count
-
-        jsonb result
-
-    }
-
-
-
-    SESSION_CHECKPOINTS {
-
-        uuid id PK
-
-        uuid session_id FK
-
-        int sequence
-
-        jsonb data
-
-        timestamp created_at
-
-    }
-
 ```
 
-
-
 ---
-
-
 
 ## 3. File Hierarchy & Key Components
 
-
-
 ```text
-
 orchestrator/src/industrial_orchestrator/
-
-├── domain/                               # 🧠 PURE BUSINESS LOGIC (No external deps)
-
+├── domain/                               # 🧠 PURE BUSINESS LOGIC
 │   ├── entities/
-
-│   │   ├── agent.py                      # Agent specialization & load balancing
-
-│   │   ├── context.py                    # Context sharing & conflict detection
-
-│   │   ├── registry.py                   # Agent registry & capability indexing
-
-│   │   ├── session.py                    # Core session state machine
-
-│   │   ├── task.py                       # Task decomposition & dependencies
-
-│   │   └── base.py                       # Base entity class
-
-│   ├── value_objects/                    # Immutable domain values
-
-│   │   ├── session_status.py             # Status enums & transition logic
-
-│   │   └── execution_metrics.py          # Performance telemetry
-
-│   ├── events/                           # Domain events
-
-│   │   └── session_events.py             # Session lifecycle events
-
-│   └── exceptions/                       # Domain-specific errors
-
-│       ├── agent_exceptions.py
-
-│       ├── context_exceptions.py
-
-│       ├── locking_exceptions.py
-
-│       ├── repository_exceptions.py
-
-│       ├── session_exceptions.py
-
-│       └── task_exceptions.py
-
+│   │   ├── tenant.py                     # Quota & team definition
+│   │   ├── user.py                       # RBAC & identity
+│   │   ├── fine_tuning.py                # Job state machine
+│   │   ├── session.py                    # Core session entity
+│   │   └── registry.py                   # Capability discovery
+│   ├── value_objects/
+│   │   ├── model_version.py              # SemVer tracking
+│   │   └── session_status.py             # Lifecycle enums
+│   └── exceptions/
+│       ├── tenant_exceptions.py          # Quota errors
+│       └── fine_tuning_exceptions.py
 │
-
 ├── application/                          # ⚙️ ORCHESTRATION LOGIC
-
 │   ├── services/
-
-│   │   ├── session_service.py            # Lifecycle & execution dispatch
-
-│   │   ├── agent_management_service.py   # Agent registration & EAP handshake
-
-│   │   ├── context_service.py            # Context creation & sharing
-
-│   │   └── task_decomposition_service.py # Intelligent task breakdown
-
-│   ├── ports/                            # Interfaces (Abstract Base Classes)
-
-│   │   ├── repository_ports.py           # Repository ABCs
-
-│   │   └── service_ports.py              # ExternalAgentPort (EAP contract)
-
-│   ├── dtos/                             # Data Transfer Objects
-
-│   │   ├── session_dtos.py
-
-│   │   ├── agent_dtos.py
-
-│   │   ├── task_dtos.py
-
-│   │   └── external_agent_protocol.py    # EAP standard models
-
-│   └── use_cases/                        # Specific application use cases
-
+│   │   ├── session_service.py            # Dispatch & Quotas
+│   │   ├── fine_tuning_service.py        # Pipeline orchestration
+│   │   ├── dataset_curator_service.py    # Log processing
+│   │   └── tenant_service.py             # Team onboarding
+│   ├── ports/
+│   │   ├── service_ports.py              # ExternalAgentPort, TrainingProviderPort
+│   │   └── repository_ports.py           # Repo interfaces
+│   └── dtos/                             # Data Transfer Objects
 │
-
 ├── infrastructure/                       # 🔌 ADAPTERS & IO
-
-│   ├── database/
-
-│   │   └── models.py                     # SQLAlchemy models & triggers
-
 │   ├── repositories/
-
-│   │   ├── base.py                       # Generic repository with Unit of Work
-
-│   │   ├── session_repository.py         # Session-specific data access
-
-│   │   ├── agent_repository.py           # Redis-backed agent storage
-
-│   │   └── context_repository.py         # Hybrid Redis/PostgreSQL context storage
-
-│   ├── locking/
-
-│   │   └── distributed_lock.py           # Redis-based fair locking
-
+│   │   ├── base.py                       # Global tenant filtering logic
+│   │   ├── session_repository.py         # PostgreSQL persistence
+│   │   └── fine_tuning_repository.py     # Job tracking
 │   ├── adapters/
-
-│   │   ├── opencode_client.py            # OpenCode API client
-
-│   │   └── eap_agent_adapter.py          # HTTP-based EAP agent client
-
-│   ├── config/                           # Configuration management
-
-│   │   ├── database.py                   # DB connection pooling
-
-│   │   └── redis.py                      # Redis client config
-
-│   └── exceptions/                       # Infrastructure errors
-
-│       ├── opencode_exceptions.py
-
-│       └── redis_exceptions.py
-
+│   │   ├── eap_agent_adapter.py          # EAP HTTP implementation
+│   │   └── simulated_training_provider.py # Simulation backend
+│   └── database/
+│       └── models.py                     # Multi-tenant schema
 │
-
 └── presentation/                         # 🖥️ ENTRY POINTS
-
-    ├── api/                              # FastAPI routes
-
-    │   ├── main.py                       # Application factory
-
-    │   ├── dependencies.py               # Dependency injection
-
-    │   ├── middleware/                   # Request/Error handling
-
+    ├── api/
+    │   ├── middleware/
+    │   │   └── tenant.py                 # Request context provider
     │   └── routers/
-
-    │       ├── sessions.py               # /api/v1/sessions
-
-    │       ├── agents.py                 # Internal agents
-
-    │       ├── external_agents.py        # /api/v1/agents/external (EAP)
-
-    │       ├── tasks.py                  # /api/v1/tasks
-
-    │       └── contexts.py               # /api/v1/contexts
-
-    ├── websocket/                        # Real-time updates
-
-    │   ├── connection_manager.py         # WebSocket connection pool
-
-    │   └── session_events.py             # Session event broadcasting
-
-    ├── cli/                              # CLI commands
-
-    └── dashboard/                        # Next.js 16 Frontend (Marketplace)
-
+    │       ├── fine_tuning.py            # /api/v1/fine-tuning
+    │       └── external_agents.py        # /api/v1/agents/external
+    └── dashboard/                        # Next.js 16 Marketplace & Registry
 ```
 
-
-
 ---
-
-
 
 ## 4. API Reference
 
-
-
 ### REST Endpoints
 
-
-
 | Endpoint | Method | Description |
-
 |:---------|:------:|:------------|
-
-| `/api/v1/sessions` | GET | List sessions with filtering |
-
-| `/api/v1/sessions` | POST | Create new session |
-
-| `/api/v1/sessions/{id}/start` | POST | Start session execution |
-
-| `/api/v1/agents` | GET | List registered agents |
-
-| `/api/v1/agents/external/register` | POST | Register external agent (EAP) |
-
-| `/api/v1/agents/external/{id}/heartbeat` | POST | Agent heartbeat & load report |
-
-| `/api/v1/agents/route` | POST | Route task to best agent |
-
-| `/api/v1/tasks` | POST | Create new task |
-
-| `/api/v1/tasks/{id}/decompose` | POST | Decompose task into subtasks |
-
-| `/api/v1/contexts` | POST | Create execution context |
-
-| `/health` | GET | Health check |
-
-
-
-### WebSocket Endpoints
-
-
-
-| Endpoint | Description |
-
-|:---------|:------------|
-
-| `/ws/sessions` | Subscribe to all session events |
-
-| `/ws/sessions/{id}` | Subscribe to specific session events |
-
-
+| `/api/v1/sessions` | POST | Create session (X-Tenant-ID header required) |
+| `/api/v1/sessions/{id}/start` | POST | Execute orchestration |
+| `/api/v1/agents/external/register` | POST | Register EAP agent |
+| `/api/v1/fine-tuning/jobs` | POST | Initiate model training |
+| `/api/v1/fine-tuning/jobs/poll` | POST | Sync progress from providers |
+| `/health/ready` | GET | System readiness check |
 
 ---
-
-
 
 ## 5. Development Workflow
 
-
-
 ### Standards
-
-*   **Code Style:** Strict adherence to `black`, `isort`, and `flake8`.
-
-*   **Testing:** **TDD (Test-Driven Development)** is mandatory.
-
-    *   Unit Tests: `tests/unit` (Fast, mocked deps)
-
-    *   Integration Tests: `tests/integration` (Real DB/Redis)
-
-*   **Database:** Alembic for all schema changes. **Never** modify the schema manually.
-
-
+*   **Tenant Isolation**: Repositories automatically filter by `tenant_id`. Always ensure `X-Tenant-ID` is provided in integration tests.
+*   **TDD Mandatory**: 337 tests must pass before deployment.
 
 ### Key Commands
-
 ```bash
-
-# Run all tests (329 tests)
-
+# Run all tests
 poetry run pytest
 
-
-
-# Run unit tests only
-
-poetry run pytest tests/unit
-
-
-
-# Run migrations
-
-poetry run alembic upgrade head
-
-
-
-# Start development server
-
-poetry run uvicorn src.industrial_orchestrator.presentation.api.main:app --reload
-
-
-
-# Start dashboard
-
-cd dashboard && npm run dev
-
+# Manual API test with tenant context
+curl -H "X-Tenant-ID: <uuid>" http://localhost:8000/api/v1/sessions
 ```
 
-
-
 ---
-
-
 
 ## 6. Test Coverage
 
-
-
 | Component | Tests | Status |
-
 |:----------|------:|:------:|
-
-| Session Entity | 42 | ✅ |
-
-| Agent Entity | 54 | ✅ |
-
-| Task Entity | 53 | ✅ |
-
+| Session & Task Entities | 95 | ✅ |
+| Agent & Registry Entities | 54 | ✅ |
 | Context Entity | 39 | ✅ |
-
-| Task Decomposition Service | 24 | ✅ |
-
-| Integration & Infrastructure | ~117 | ✅ |
-
-| **Total** | **329** | ✅ |
-
-
+| Fine-Tuning & Tenant Pipeline | 15 | ✅ |
+| Integration & Infrastructure | ~134 | ✅ |
+| **Total** | **337** | ✅ |
 
 ---
 
-
-
 ## 7. Roadmap
 
+### ✅ Phase 3.2: LLM Fine-Tuning Pipeline (Complete)
+- Instruction dataset curator (JSONL)
+- Training provider abstraction (Ports)
+- Simulated training backend for development
+- Model registry telemetry UI
 
+### ✅ Phase 3.3: Multi-Tenant Isolation (Complete)
+- Header-based tenant context middleware
+- Global repository isolation filtering
+- Active session resource quotas
+- Multi-tier RBAC system (ADMIN to VIEWER)
 
-### ✅ Phase 3.1: Agent Marketplace & EAP (Complete)
-
-- External Agent Protocol (EAP) v1.0 specification
-
-- Secure token-based registration handshake
-
-- Outbound task dispatch via `EAPAgentAdapter`
-
-- Marketplace UI for browsing and unit diagnostics
-
-- 329 passing backend tests
-
-
-
-### 🗓️ Phase 3.2: LLM Fine-Tuning Pipeline (Next)
-
-- Automated dataset curator for session logs
-
-- LoRA/QLoRA async training jobs
-
-- Model versioning registry
-
-- Integration with external training compute providers
+### 🗓️ Phase 4.0: Global Scaling (Next)
+- Multi-region event synchronization
+- Advanced billing & usage analytics
+- Predictive load balancing for GPU clusters

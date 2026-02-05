@@ -44,6 +44,7 @@ def complexity_analyzer():
 def simple_task():
     """Create simple implementation task."""
     return TaskEntity(
+        tenant_id=uuid4(),
         title="Implement user login functionality for IND-TASK-001",
         description="Create login form and authentication logic",
         task_type="implementation",
@@ -56,6 +57,7 @@ def simple_task():
 def complex_microservice_task():
     """Create complex microservice task."""
     return TaskEntity(
+        tenant_id=uuid4(),
         title="Create microservice API for distributed system",
         description="Create a microservice with REST API, database integration, and authentication",
         task_type="implementation",
@@ -68,6 +70,7 @@ def complex_microservice_task():
 def crud_task():
     """Create CRUD operation task."""
     return TaskEntity(
+        tenant_id=uuid4(),
         title="Create CRUD operations for product entity with database model",
         description="Implement create, read, update, delete operations for product entity with database model",
         task_type="implementation",
@@ -80,6 +83,7 @@ def crud_task():
 def security_task():
     """Create security-focused task."""
     return TaskEntity(
+        tenant_id=uuid4(),
         title="Implement security audit and authentication hardening",
         description="Perform security audit, vulnerability scanning, and implement security fixes for authentication",
         task_type="implementation",
@@ -325,6 +329,7 @@ class TestEdgeCases:
     def test_decompose_task_with_empty_description(self, decomposition_service):
         """Test decomposing task with minimal description."""
         task = TaskEntity(
+            tenant_id=uuid4(),
             title="Create minimal task component",
             description="",
             task_type="implementation",

@@ -40,3 +40,6 @@ Awesome job on your meticulous analysis, planning and execution. Please keep up 
 
 Awesome job on your meticulous review, analysis and planning. Please keep up the good work. Now, please meticulously plan to update @README.md , @CLAUDE.md and @Project_Architecture_Document.md with details about Phase 3.1 completion, also additional details as appropriate for each individual file. Make sure the updated documents correctly and accurately reflect and align with the current project status and codebase.
 
+---
+
+Awesome job on your meticulous analysis, planning and execution. Please keep up the good work in your rigorous and meticulous approach to planning and execution. Now, please meticulously review @GEMINI.md and @AGENTS.md and update them with the same details on Phase 3.1 to Phase 3.3 completion. Also ensure that these agent documents are updated correctly to accurately reflect the current project status and codebase state.

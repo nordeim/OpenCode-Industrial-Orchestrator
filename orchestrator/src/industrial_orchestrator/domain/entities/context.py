@@ -227,6 +227,41 @@ class ContextEntity(DomainEntity):
             }
         )
 
+    def has(self, key: str) -> bool:
+        """Check if key exists in context."""
+        return self.get(key) is not None
+
+    def keys(self) -> List[str]:
+        """Get top-level keys."""
+        return list(self.data.keys())
+
+    def clone(self, new_scope: Optional[ContextScope] = None) -> "ContextEntity":
+        """Create a deep copy of this context."""
+        return ContextEntity(
+            tenant_id=self.tenant_id,
+            session_id=self.session_id,
+            agent_id=self.agent_id,
+            scope=new_scope or self.scope,
+            data=copy.deepcopy(self.data),
+            metadata={
+                **copy.deepcopy(self.metadata),
+                "cloned_from": str(self.id)
+            }
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return self.model_dump()
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ContextEntity":
+        """Create from dictionary."""
+        return cls.model_validate(data)
+
+    def get_recent_changes(self, count: int = 10) -> List[ContextChange]:
+        """Get recent change history."""
+        return self._change_history[-count:]
+
     def _record_change(self, key: str, old_value: Any, new_value: Any, changed_by: Optional[str]) -> None:
         change = ContextChange(
             key=key,

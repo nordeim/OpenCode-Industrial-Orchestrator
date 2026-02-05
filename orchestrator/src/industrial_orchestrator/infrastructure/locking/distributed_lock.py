@@ -590,7 +590,7 @@ class IndustrialDistributedLock:
             if not lock_data_json:
                 return None
             
-            lock_data = await self.redis._deserialize_value(lock_data_json)
+            lock_data = self.redis._deserialize_value(lock_data_json)
             
             # Get metadata
             metadata = await self.redis.get_json(self.metadata_key)

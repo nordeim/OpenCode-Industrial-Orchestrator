@@ -4,6 +4,7 @@ Test session repository with real database connection.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
@@ -30,7 +31,7 @@ from tests.unit.domain.factories.session_factory import (
 class TestSessionRepositoryIntegration:
     """Integration tests for SessionRepository"""
     
-    @pytest.fixture(autouse=True)
+    @pytest_asyncio.fixture(autouse=True)
     async def setup_and_teardown(self):
         """Setup and teardown for each test"""
         # Initialize dependencies
@@ -54,7 +55,7 @@ class TestSessionRepositoryIntegration:
         await shutdown_database()
         await shutdown_redis()
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def session_repository(self):
         """Create session repository for testing"""
         repository = SessionRepository()

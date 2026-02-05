@@ -68,13 +68,10 @@ class DatabaseSettings(BaseSettings):
         """Generate PostgreSQL connection string"""
         ssl_params = ""
         if self.ssl_mode != "disable":
-            ssl_params = f"&sslmode={self.ssl_mode}"
-            if self.ssl_cert:
-                ssl_params += f"&sslcert={self.ssl_cert}"
-            if self.ssl_key:
-                ssl_params += f"&sslkey={self.ssl_key}"
-            if self.ssl_root_cert:
-                ssl_params += f"&sslrootcert={self.ssl_root_cert}"
+            # asyncpg uses 'ssl' parameter, not 'sslmode'
+            if self.ssl_mode in ["require", "verify-ca", "verify-full"]:
+                ssl_params = f"&ssl=true"
+            # In a real system, we'd map this more precisely
         
         return (
             f"postgresql+asyncpg://{self.user}:{self.password}"

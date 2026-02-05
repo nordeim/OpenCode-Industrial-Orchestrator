@@ -5,7 +5,7 @@ Comprehensive unit tests for ContextService business logic.
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4, UUID
 
 from src.industrial_orchestrator.application.services.context_service import ContextService
@@ -28,13 +28,14 @@ from src.industrial_orchestrator.domain.exceptions.context_exceptions import (
 def mock_context_repo():
     """Create mock context repository."""
     repo = AsyncMock()
-    repo.get_by_id = AsyncMock(return_value=None)
-    repo.save = AsyncMock()
+    repo.retrieve = AsyncMock(return_value=None)
+    repo.store = AsyncMock()
     repo.delete = AsyncMock(return_value=True)
-    repo.find_by_session = AsyncMock(return_value=[])
-    repo.find_by_agent = AsyncMock(return_value=[])
-    repo.find_by_scope = AsyncMock(return_value=[])
-    repo.find_global_contexts = AsyncMock(return_value=[])
+    repo.retrieve_by_session = AsyncMock(return_value=[])
+    repo.retrieve_by_agent = AsyncMock(return_value=[])
+    repo.retrieve_global = AsyncMock(return_value=[])
+    repo.promote_to_global = AsyncMock()
+    repo.merge = AsyncMock()
     return repo
 
 
@@ -50,6 +51,7 @@ def context_service(mock_context_repo):
 def sample_session_context():
     """Create sample session-scoped context."""
     return ContextEntity(
+        tenant_id=uuid4(),
         session_id=uuid4(),
         scope=ContextScope.SESSION,
         data={"project": "test", "config": {"debug": True}},
@@ -61,6 +63,7 @@ def sample_session_context():
 def sample_agent_context():
     """Create sample agent-scoped context."""
     return ContextEntity(
+        tenant_id=uuid4(),
         session_id=uuid4(),
         agent_id=uuid4(),
         scope=ContextScope.AGENT,
@@ -73,6 +76,7 @@ def sample_agent_context():
 def sample_global_context():
     """Create sample global-scoped context."""
     return ContextEntity(
+        tenant_id=uuid4(),
         scope=ContextScope.GLOBAL,
         data={"shared_config": "value", "system_wide": True},
         created_by="admin",
@@ -90,41 +94,47 @@ class TestContextCreation:
     async def test_create_session_context(self, context_service, mock_context_repo):
         """Test creating session-scoped context."""
         session_id = uuid4()
+        tenant_id = uuid4()
         
-        mock_context_repo.save.return_value = ContextEntity(
+        mock_context_repo.store.return_value = ContextEntity(
+            tenant_id=tenant_id,
             session_id=session_id,
             scope=ContextScope.SESSION,
             data={"initial": "data"},
         )
         
-        result = await context_service.create_context(
-            session_id=session_id,
-            scope=ContextScope.SESSION,
-            initial_data={"initial": "data"},
-            created_by="test_user",
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.create_context(
+                session_id=session_id,
+                scope=ContextScope.SESSION,
+                initial_data={"initial": "data"},
+                created_by="test_user",
+            )
         
         assert result is not None
-        mock_context_repo.save.assert_called_once()
+        mock_context_repo.store.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_agent_context(self, context_service, mock_context_repo):
         """Test creating agent-scoped context."""
         session_id = uuid4()
         agent_id = uuid4()
+        tenant_id = uuid4()
         
-        mock_context_repo.save.return_value = ContextEntity(
+        mock_context_repo.store.return_value = ContextEntity(
+            tenant_id=tenant_id,
             session_id=session_id,
             agent_id=agent_id,
             scope=ContextScope.AGENT,
             data={},
         )
         
-        result = await context_service.create_context(
-            session_id=session_id,
-            agent_id=agent_id,
-            scope=ContextScope.AGENT,
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.create_context(
+                session_id=session_id,
+                agent_id=agent_id,
+                scope=ContextScope.AGENT,
+            )
         
         assert result is not None
         assert result.scope == ContextScope.AGENT
@@ -132,15 +142,18 @@ class TestContextCreation:
     @pytest.mark.asyncio
     async def test_create_global_context(self, context_service, mock_context_repo):
         """Test creating global-scoped context."""
-        mock_context_repo.save.return_value = ContextEntity(
+        tenant_id = uuid4()
+        mock_context_repo.store.return_value = ContextEntity(
+            tenant_id=tenant_id,
             scope=ContextScope.GLOBAL,
             data={"global": "config"},
         )
         
-        result = await context_service.create_context(
-            scope=ContextScope.GLOBAL,
-            initial_data={"global": "config"},
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.create_context(
+                scope=ContextScope.GLOBAL,
+                initial_data={"global": "config"},
+            )
         
         assert result is not None
         assert result.scope == ContextScope.GLOBAL
@@ -149,18 +162,21 @@ class TestContextCreation:
     async def test_create_context_with_metadata(self, context_service, mock_context_repo):
         """Test creating context with custom metadata."""
         session_id = uuid4()
+        tenant_id = uuid4()
         
-        mock_context_repo.save.return_value = ContextEntity(
+        mock_context_repo.store.return_value = ContextEntity(
+            tenant_id=tenant_id,
             session_id=session_id,
             scope=ContextScope.SESSION,
             data={},
             metadata={"version": "1.0"},
         )
         
-        result = await context_service.create_context(
-            session_id=session_id,
-            metadata={"version": "1.0"},
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.create_context(
+                session_id=session_id,
+                metadata={"version": "1.0"},
+            )
         
         assert result is not None
 
@@ -176,7 +192,7 @@ class TestContextRetrieval:
     async def test_get_context_by_id(self, context_service, mock_context_repo, sample_session_context):
         """Test retrieving context by ID."""
         context_id = sample_session_context.id
-        mock_context_repo.get_by_id.return_value = sample_session_context
+        mock_context_repo.retrieve.return_value = sample_session_context
         
         result = await context_service.get_context(context_id)
         
@@ -187,7 +203,7 @@ class TestContextRetrieval:
     async def test_get_nonexistent_context(self, context_service, mock_context_repo):
         """Test retrieving nonexistent context raises error."""
         context_id = uuid4()
-        mock_context_repo.get_by_id.return_value = None
+        mock_context_repo.retrieve.return_value = None
         
         with pytest.raises(ContextNotFoundError):
             await context_service.get_context(context_id)
@@ -196,7 +212,7 @@ class TestContextRetrieval:
     async def test_get_or_create_existing(self, context_service, mock_context_repo, sample_session_context):
         """Test get_or_create returns existing context."""
         session_id = sample_session_context.session_id
-        mock_context_repo.find_by_session.return_value = [sample_session_context]
+        mock_context_repo.retrieve_by_session.return_value = [sample_session_context]
         
         result = await context_service.get_or_create_context(
             session_id=session_id,
@@ -204,29 +220,32 @@ class TestContextRetrieval:
         )
         
         assert result is not None
-        # Should not call save since context exists
-        mock_context_repo.save.assert_not_called()
+        # Should not call store since context exists
+        mock_context_repo.store.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_or_create_creates_new(self, context_service, mock_context_repo):
         """Test get_or_create creates new when none exists."""
         session_id = uuid4()
-        mock_context_repo.find_by_session.return_value = []  # None exists
+        tenant_id = uuid4()
+        mock_context_repo.retrieve_by_session.return_value = []  # None exists
         
         new_context = ContextEntity(
+            tenant_id=tenant_id,
             session_id=session_id,
             scope=ContextScope.SESSION,
             data={},
         )
-        mock_context_repo.save.return_value = new_context
+        mock_context_repo.store.return_value = new_context
         
-        result = await context_service.get_or_create_context(
-            session_id=session_id,
-            scope=ContextScope.SESSION,
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.get_or_create_context(
+                session_id=session_id,
+                scope=ContextScope.SESSION,
+            )
         
         assert result is not None
-        mock_context_repo.save.assert_called_once()
+        mock_context_repo.store.assert_called_once()
 
 
 # ============================================================================
@@ -240,8 +259,8 @@ class TestContextUpdate:
     async def test_update_context(self, context_service, mock_context_repo, sample_session_context):
         """Test updating context data."""
         context_id = sample_session_context.id
-        mock_context_repo.get_by_id.return_value = sample_session_context
-        mock_context_repo.save.return_value = sample_session_context
+        mock_context_repo.retrieve.return_value = sample_session_context
+        mock_context_repo.store.return_value = sample_session_context
         
         updates = {"new_key": "new_value", "config.timeout": 30}
         
@@ -252,13 +271,13 @@ class TestContextUpdate:
         )
         
         assert result is not None
-        mock_context_repo.save.assert_called_once()
+        mock_context_repo.store.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_update_nonexistent_context(self, context_service, mock_context_repo):
         """Test updating nonexistent context raises error."""
         context_id = uuid4()
-        mock_context_repo.get_by_id.return_value = None
+        mock_context_repo.retrieve.return_value = None
         
         with pytest.raises(ContextNotFoundError):
             await context_service.update_context(
@@ -282,9 +301,9 @@ class TestContextSharing:
         source_session_id = sample_session_context.session_id
         target_session_id = uuid4()
         
-        mock_context_repo.find_by_session.return_value = [sample_session_context]
-        mock_context_repo.get_by_id.return_value = sample_session_context
-        mock_context_repo.save.return_value = sample_session_context
+        mock_context_repo.retrieve_by_session.return_value = [sample_session_context]
+        mock_context_repo.retrieve.return_value = sample_session_context
+        mock_context_repo.store.return_value = sample_session_context
         
         result = await context_service.share_context(
             source_session_id=source_session_id,
@@ -302,8 +321,8 @@ class TestContextSharing:
         target_session_id = uuid4()
         context_id = sample_session_context.id
         
-        mock_context_repo.get_by_id.return_value = sample_session_context
-        mock_context_repo.save.return_value = sample_session_context
+        mock_context_repo.retrieve.return_value = sample_session_context
+        mock_context_repo.store.return_value = sample_session_context
         
         result = await context_service.share_context(
             source_session_id=source_session_id,
@@ -324,57 +343,67 @@ class TestContextMerging:
     @pytest.mark.asyncio
     async def test_merge_two_contexts(self, context_service, mock_context_repo):
         """Test merging two contexts."""
+        tenant_id = uuid4()
         ctx1 = ContextEntity(
+            tenant_id=tenant_id,
             session_id=uuid4(),
             scope=ContextScope.SESSION,
             data={"key1": "value1", "shared": "from_ctx1"},
         )
         ctx2 = ContextEntity(
+            tenant_id=tenant_id,
             session_id=ctx1.session_id,
             scope=ContextScope.SESSION,
             data={"key2": "value2", "shared": "from_ctx2"},
         )
-        
-        mock_context_repo.get_by_id.side_effect = [ctx1, ctx2]
-        mock_context_repo.save.return_value = ContextEntity(
+    
+        mock_context_repo.retrieve.side_effect = [ctx1, ctx2]
+        mock_context_repo.merge.return_value = ContextEntity(
+            tenant_id=tenant_id,
             session_id=ctx1.session_id,
             scope=ContextScope.SESSION,
             data={},  # Merged data
         )
-        
-        result = await context_service.merge_contexts(
-            context_ids=[ctx1.id, ctx2.id],
-            strategy=MergeStrategy.LAST_WRITE_WINS,
-        )
-        
+    
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.merge_contexts(
+                context_ids=[ctx1.id, ctx2.id],
+                strategy=MergeStrategy.LAST_WRITE_WINS,
+            )
+    
         assert result is not None
-        mock_context_repo.save.assert_called_once()
+        mock_context_repo.merge.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_merge_with_deep_strategy(self, context_service, mock_context_repo):
         """Test merging with DEEP_MERGE strategy."""
+        tenant_id = uuid4()
         ctx1 = ContextEntity(
+            tenant_id=tenant_id,
             session_id=uuid4(),
             scope=ContextScope.SESSION,
             data={"nested": {"key1": "v1"}},
         )
         ctx2 = ContextEntity(
+            tenant_id=tenant_id,
             session_id=ctx1.session_id,
             scope=ContextScope.SESSION,
             data={"nested": {"key2": "v2"}},
         )
         
-        mock_context_repo.get_by_id.side_effect = [ctx1, ctx2]
-        mock_context_repo.save.return_value = ContextEntity(
+        mock_context_repo.retrieve.side_effect = [ctx1, ctx2]
+        mock_context_repo.store.return_value = ContextEntity(
+            tenant_id=tenant_id,
             session_id=ctx1.session_id,
             scope=ContextScope.SESSION,
             data={"nested": {"key1": "v1", "key2": "v2"}},
         )
         
-        result = await context_service.merge_contexts(
-            context_ids=[ctx1.id, ctx2.id],
-            strategy=MergeStrategy.DEEP_MERGE,
-        )
+        with patch('src.industrial_orchestrator.application.services.context_service.get_current_tenant_id', return_value=tenant_id):
+            result = await context_service.merge_contexts(
+                context_ids=[ctx1.id, ctx2.id],
+                strategy=MergeStrategy.DEEP_MERGE,
+            )
         
         assert result is not None
 
@@ -392,13 +421,14 @@ class TestGlobalPromotion:
     ):
         """Test promoting session context to global scope."""
         context_id = sample_session_context.id
-        mock_context_repo.get_by_id.return_value = sample_session_context
+        mock_context_repo.retrieve.return_value = sample_session_context
         
         global_context = ContextEntity(
+            tenant_id=sample_session_context.tenant_id,
             scope=ContextScope.GLOBAL,
             data=sample_session_context.data.copy(),
         )
-        mock_context_repo.save.return_value = global_context
+        mock_context_repo.promote_to_global.return_value = global_context
         
         result = await context_service.promote_to_global(
             context_id=context_id,
@@ -412,7 +442,7 @@ class TestGlobalPromotion:
     async def test_promote_nonexistent_context(self, context_service, mock_context_repo):
         """Test promoting nonexistent context raises error."""
         context_id = uuid4()
-        mock_context_repo.get_by_id.return_value = None
+        mock_context_repo.retrieve.return_value = None
         
         with pytest.raises(ContextNotFoundError):
             await context_service.promote_to_global(context_id)
@@ -428,18 +458,21 @@ class TestContextDiff:
     @pytest.mark.asyncio
     async def test_get_context_diff(self, context_service, mock_context_repo):
         """Test getting diff between two contexts."""
+        tenant_id = uuid4()
         ctx_a = ContextEntity(
+            tenant_id=tenant_id,
             session_id=uuid4(),
             scope=ContextScope.SESSION,
             data={"key1": "value1", "shared": "old_value"},
         )
         ctx_b = ContextEntity(
+            tenant_id=tenant_id,
             session_id=ctx_a.session_id,
             scope=ContextScope.SESSION,
             data={"key2": "value2", "shared": "new_value"},
         )
         
-        mock_context_repo.get_by_id.side_effect = [ctx_a, ctx_b]
+        mock_context_repo.retrieve.side_effect = [ctx_a, ctx_b]
         
         result = await context_service.get_context_diff(
             context_id_a=ctx_a.id,
@@ -462,7 +495,7 @@ class TestContextCleanup:
     ):
         """Test cleaning up contexts for a session."""
         session_id = sample_session_context.session_id
-        mock_context_repo.find_by_session.return_value = [sample_session_context]
+        mock_context_repo.retrieve_by_session.return_value = [sample_session_context]
         mock_context_repo.delete.return_value = True
         
         result = await context_service.cleanup_session_contexts(
@@ -475,7 +508,7 @@ class TestContextCleanup:
     @pytest.mark.asyncio
     async def test_get_global_contexts(self, context_service, mock_context_repo, sample_global_context):
         """Test retrieving all global contexts."""
-        mock_context_repo.find_global_contexts.return_value = [sample_global_context]
+        mock_context_repo.retrieve_global.return_value = [sample_global_context]
         
         result = await context_service.get_global_contexts()
         
@@ -496,7 +529,7 @@ class TestContextSummary:
     ):
         """Test getting context summary for a session."""
         session_id = sample_session_context.session_id
-        mock_context_repo.find_by_session.return_value = [sample_session_context]
+        mock_context_repo.retrieve_by_session.return_value = [sample_session_context]
         
         result = await context_service.get_session_context_summary(session_id)
         

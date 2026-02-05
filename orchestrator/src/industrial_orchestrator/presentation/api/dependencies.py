@@ -65,7 +65,7 @@ def get_settings() -> OrchestratorSettings:
 from uuid import UUID
 from fastapi import Header, HTTPException, status, Depends
 
-from ..domain.entities.user import User, Role
+from ...domain.entities.user import User, Role
 
 # ============================================================================
 # AUTHENTICATION & RBAC DEPENDENCIES

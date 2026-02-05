@@ -71,6 +71,7 @@ def session_service(mock_session_repo, mock_opencode_client):
 def sample_session():
     """Create a sample session entity."""
     return SessionEntity(
+        tenant_id=uuid4(),
         title="IND-TEST-001: Sample Session",
         initial_prompt="Implement feature X",
         session_type=SessionType.EXECUTION,
@@ -89,8 +90,10 @@ class TestSessionCreation:
     @pytest.mark.asyncio
     async def test_create_session_success(self, session_service, mock_session_repo):
         """Test successful session creation with all fields."""
+        tenant_id = uuid4()
         # Arrange
         expected_session = SessionEntity(
+            tenant_id=tenant_id,
             title="IND-TEST-001: New Feature",
             initial_prompt="Implement authentication",
             session_type=SessionType.EXECUTION,
@@ -102,15 +105,16 @@ class TestSessionCreation:
         # Act
         with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock', 
                    return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
-            result = await session_service.create_session(
-                title="IND-TEST-001: New Feature",
-                initial_prompt="Implement authentication",
-                session_type=SessionType.EXECUTION,
-                priority=SessionPriority.HIGH,
-                created_by="dev_team",
-                tags=["auth", "security"],
-                metadata={"sprint": 5},
-            )
+            with patch('src.industrial_orchestrator.application.services.session_service.get_current_tenant_id', return_value=tenant_id):
+                result = await session_service.create_session(
+                    title="IND-TEST-001: New Feature",
+                    initial_prompt="Implement authentication",
+                    session_type=SessionType.EXECUTION,
+                    priority=SessionPriority.HIGH,
+                    created_by="dev_team",
+                    tags=["auth", "security"],
+                    metadata={"sprint": 5},
+                )
         
         # Assert
         assert result is not None
@@ -126,7 +130,9 @@ class TestSessionCreation:
     @pytest.mark.asyncio
     async def test_create_session_with_defaults(self, session_service, mock_session_repo):
         """Test session creation with minimal required fields."""
+        tenant_id = uuid4()
         expected_session = SessionEntity(
+            tenant_id=tenant_id,
             title="IND-MIN-001: Minimal Session",
             initial_prompt="Simple task",
         )
@@ -134,10 +140,11 @@ class TestSessionCreation:
         
         with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock',
                    return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
-            result = await session_service.create_session(
-                title="IND-MIN-001: Minimal Session",
-                initial_prompt="Simple task",
-            )
+            with patch('src.industrial_orchestrator.application.services.session_service.get_current_tenant_id', return_value=tenant_id):
+                result = await session_service.create_session(
+                    title="IND-MIN-001: Minimal Session",
+                    initial_prompt="Simple task",
+                )
         
         assert result is not None
         added_session = mock_session_repo.add.call_args[0][0]
@@ -177,18 +184,19 @@ class TestSessionCreation:
         parent_id = uuid4()
         parent_session = sample_session
         parent_session.id = parent_id
-        
+        tenant_id = sample_session.tenant_id
+    
         mock_session_repo.get_by_id.return_value = parent_session
         mock_session_repo.add.return_value = sample_session
-        
+    
         with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock',
                    return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
-            result = await session_service.create_session(
-                title="IND-CHILD-001: Child Session",
-                initial_prompt="Sub-task",
-                parent_session_id=parent_id,
-            )
-        
+            with patch('src.industrial_orchestrator.application.services.session_service.get_current_tenant_id', return_value=tenant_id):
+                result = await session_service.create_session(
+                    title="IND-CHILD-001: Child Session",
+                    initial_prompt="Sub-task",
+                    parent_session_id=parent_id,
+                )
         assert result is not None
         mock_session_repo.get_by_id.assert_called_once_with(parent_id)
 
@@ -196,16 +204,21 @@ class TestSessionCreation:
     async def test_create_session_nonexistent_parent_fails(self, session_service, mock_session_repo):
         """Test that creation fails if parent doesn't exist."""
         parent_id = uuid4()
+        tenant_id = uuid4()
         mock_session_repo.get_by_id.return_value = None  # Parent not found
-        
-        with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock',
-                   return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
-            with pytest.raises(SessionNotFoundError):
-                await session_service.create_session(
-                    title="IND-ORPHAN-001: Orphan",
-                    initial_prompt="Orphan task",
-                    parent_session_id=parent_id,
-                )
+    
+        lock_mock = AsyncMock()
+        lock_mock.__aenter__.return_value = AsyncMock()
+        lock_mock.__aexit__.return_value = None
+    
+        with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock', return_value=lock_mock):
+            with patch('src.industrial_orchestrator.application.services.session_service.get_current_tenant_id', return_value=tenant_id):
+                with pytest.raises(SessionNotFoundError):
+                    await session_service.create_session(
+                        title="IND-ORPHAN-001: Orphan",
+                        initial_prompt="Orphan task",
+                        parent_session_id=parent_id,
+                    )
 
 
 # ============================================================================
@@ -235,9 +248,14 @@ class TestSessionLifecycle:
         """Test that starting nonexistent session raises error."""
         session_id = uuid4()
         mock_session_repo.get_by_id.return_value = None
-        
+        mock_session_repo.get_with_metrics.return_value = None
+    
+        lock_mock = AsyncMock()
+        lock_mock.__aenter__.return_value = AsyncMock()
+        lock_mock.__aexit__.return_value = False
+    
         with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock',
-                   return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
+                   return_value=lock_mock):
             with pytest.raises(SessionNotFoundError):
                 await session_service.start_session(session_id)
 
@@ -245,8 +263,8 @@ class TestSessionLifecycle:
     async def test_complete_session_success(self, session_service, mock_session_repo, sample_session):
         """Test successful session completion."""
         session_id = sample_session.id
-        sample_session.status = SessionStatus.RUNNING
-        sample_session.start_execution()  # Ensure started
+        sample_session.status = SessionStatus.PENDING
+        sample_session.start_execution()  # PENDING -> RUNNING
         
         mock_session_repo.get_with_metrics.return_value = sample_session
         mock_session_repo.update.return_value = sample_session
@@ -327,35 +345,39 @@ class TestSessionRetry:
     """Test session retry logic."""
 
     @pytest.mark.asyncio
-    async def test_retry_recoverable_session(self, session_service, mock_session_repo, sample_session):
+    async def test_retry_recoverable_session(self, mock_session_repo, mock_opencode_client, sample_session):
         """Test retrying a recoverable session."""
+        # Ensure we use a fresh service instance
+        local_service = SessionService(session_repository=mock_session_repo, opencode_client=mock_opencode_client)
         session_id = sample_session.id
         sample_session.status = SessionStatus.FAILED
-        sample_session._is_recoverable = True
-        
-        # Mock is_recoverable method
-        sample_session.is_recoverable = MagicMock(return_value=True)
-        sample_session.transition_to = MagicMock()
-        sample_session.metrics = MagicMock()
-        sample_session.metrics.increment_retry_count = MagicMock()
-        
+        # Force recoverability: must have status in set AND checkpoints AND retry count < 3
+        sample_session.checkpoints = [{"sequence": 1, "data": {}, "timestamp": datetime.now(timezone.utc).isoformat()}]
+        sample_session.metrics.retry_count = 0
+    
+        # Setup mocks
         mock_session_repo.get_with_checkpoints.return_value = sample_session
         mock_session_repo.update.return_value = sample_session
-        
+    
+        lock_mock = AsyncMock()
+        lock_mock.__aenter__.return_value = AsyncMock()
+        lock_mock.__aexit__.return_value = False
+    
+        # Act
         with patch('src.industrial_orchestrator.application.services.session_service.distributed_lock',
-                   return_value=AsyncMock(__aenter__=AsyncMock(), __aexit__=AsyncMock())):
-            result = await session_service.retry_session(session_id)
+                   return_value=lock_mock):
+            result = await local_service.retry_session(session_id)
         
         assert result is not None
-        sample_session.is_recoverable.assert_called_once()
-        sample_session.transition_to.assert_called_once_with(SessionStatus.PENDING)
+        assert sample_session.status == SessionStatus.PENDING
 
     @pytest.mark.asyncio
     async def test_retry_nonrecoverable_session_returns_none(self, session_service, mock_session_repo, sample_session):
         """Test that non-recoverable session returns None."""
         session_id = sample_session.id
-        sample_session.is_recoverable = MagicMock(return_value=False)
-        
+        sample_session.status = SessionStatus.FAILED
+        # No checkpoints -> non-recoverable
+        sample_session.checkpoints = []
         mock_session_repo.get_with_checkpoints.return_value = sample_session
         
         result = await session_service.retry_session(session_id)
